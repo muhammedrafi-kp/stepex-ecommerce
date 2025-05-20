@@ -174,7 +174,13 @@ const loadPayment = async (req, res, next) => {
                 totalAmount += item.products.offer_price * item.quantity;
             }
 
-            res.render("checkout-payment", { user: userData, address: addressData.address[req.session.addressIndex], totalAmount: totalAmount, wallet: walletData, cartCount: cartItemCount, razorpaykey: RAZORPAY_ID_KEY, req });
+            res.render("checkout-payment", {
+                user: userData,
+                address: addressData.address[req.session.addressIndex],
+                totalAmount: totalAmount, wallet: walletData, cartCount: cartItemCount,
+                razorpaykey: RAZORPAY_ID_KEY,
+                req
+            });
 
         } else {
             res.redirect("/shop");
@@ -194,9 +200,7 @@ const generateOrderID = () => {
 }
 
 const confirmOrder = async (req, res, next) => {
-
     try {
-
         const { paymentMethod, paymentStatus } = req.body;
         const userId = req.session._id;
         const addressIndex = req.session.addressIndex;
