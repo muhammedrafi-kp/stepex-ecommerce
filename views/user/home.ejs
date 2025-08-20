@@ -66,7 +66,7 @@
 					<%if(topDeals && topDeals.length>0){%>
 
 						<%topDeals.forEach((product)=>{%>
-							<div class="col-sm-12 col-md-6 col-lg-3 ftco-animate d-flex">
+							<div class="col-6 col-sm-4 col-md-3 ftco-animate d-flex">
 
 								<div class="product d-flex flex-column">
 									<a href="/shop/single?id=<%= product._id %>" class="img-prod"><img class="img-fluid"
@@ -81,24 +81,24 @@
 												<div class="overlay"></div>
 									</a>
 
-									<div class="text py-3 pb-4 px-3">
+																		<div class="text py-2 py-sm-3 pb-4 px-2 px-sm-3">
 										<div class="d-flex">
 											<div class="cat">
-												<span>
+												<span class="fs-6 fs-sm-5">
 													<%= product.brand %>
 												</span>
 											</div>
 											<div class="rating">
 												<p class="text-right mb-0">
-													<a href="#"><span class="ion-ios-star"></span></a>
-													<a href="#"><span class="ion-ios-star"></span></a>
-													<a href="#"><span class="ion-ios-star"></span></a>
-													<a href="#"><span class="ion-ios-star"></span></a>
-													<a href="#"><span class="ion-ios-star-outline"></span></a>
+													<a href="#"><span class="ion-ios-star fs-6 fs-sm-5"></span></a>
+													<a href="#"><span class="ion-ios-star fs-6 fs-sm-5"></span></a>
+													<a href="#"><span class="ion-ios-star fs-6 fs-sm-5"></span></a>
+													<a href="#"><span class="ion-ios-star fs-6 fs-sm-5"></span></a>
+													<a href="#"><span class="ion-ios-star-outline fs-6 fs-sm-5"></span></a>
 												</p>
 											</div>
 										</div>
-										<h3>
+										<h3 class="fs-5 fs-sm-4 fs-md-3">
 											<a href="/shop/single?id=<%= product._id %>">
 												<%= product.name %>
 											</a>
@@ -107,30 +107,30 @@
 										<%if(product.price <=product.offer_price ){%>
 
 											<div class="pricing d-flex">
-												<p class="price" style="font-weight: 600;">
+												<p class="price fs-6 fs-sm-5" style="font-weight: 600;">
 													<span>₹ <%= product.price%> </span>
 												</p>
 											</div>
 
 											<%}else{%>
 
-												<div class="pricing d-flex">
-													<s class="price text-secondary">
-														<span>₹ <%=(product.price) %></span>
-													</s>
-													<p class="price mx-3" style="font-weight: 600;">
-														<span>₹ <%= Math.round(product.offer_price) %> </span>
-													</p>
-												</div>
+											<div class="pricing d-flex">
+												<s class="price text-secondary fs-6 fs-sm-5">
+													<span>₹ <%=(product.price) %></span>
+												</s>
+												<p class="price mx-3 fs-6 fs-sm-5" style="font-weight: 600;">
+													<span>₹ <%= Math.round(product.offer_price) %> </span>
+												</p>
+											</div>
 
-												<div>
-													<p class="badge badge-success mt-2">
-														<span>save ₹ <%=Math.round(product.price-product.offer_price)
-																%></span>
-													</p>
-												</div>
+											<div>
+												<p class="badge badge-success mt-2 fs-6 fs-sm-5">
+													<span>save ₹ <%=Math.round(product.price-product.offer_price)
+															%></span>
+												</p>
+											</div>
 
-												<%}%>
+											<%}%>
 
 									</div>
 								</div>
@@ -157,7 +157,7 @@
 					<%if(newArrivals && newArrivals.length>0){%>
 
 						<%newArrivals.forEach((product)=>{%>
-							<div class="col-sm-6 col-md-6 col-lg-3 ftco-animate d-flex">
+							<div class="col-6 col-sm-4 col-md-3 ftco-animate d-flex">
 
 								<div class="product d-flex flex-column">
 									<a href="/shop/single?id=<%= product._id %>" class="img-prod"><img class="img-fluid"
@@ -176,24 +176,24 @@
 												<div class="overlay"></div>
 									</a>
 
-									<div class="text py-3 pb-4 px-3">
+									<div class="text py-2 py-sm-3 pb-4 px-2 px-sm-3">
 										<div class="d-flex">
 											<div class="cat">
-												<span>
+												<span class="fs-6 fs-sm-5">
 													<%= product.brand %>
 												</span>
 											</div>
 											<div class="rating">
 												<p class="text-right mb-0">
-													<a href="#"><span class="ion-ios-star"></span></a>
-													<a href="#"><span class="ion-ios-star"></span></a>
-													<a href="#"><span class="ion-ios-star"></span></a>
-													<a href="#"><span class="ion-ios-star"></span></a>
-													<a href="#"><span class="ion-ios-star-outline"></span></a>
+													<a href="#"><span class="ion-ios-star fs-6 fs-sm-5"></span></a>
+													<a href="#"><span class="ion-ios-star fs-6 fs-sm-5"></span></a>
+													<a href="#"><span class="ion-ios-star fs-6 fs-sm-5"></span></a>
+													<a href="#"><span class="ion-ios-star fs-6 fs-sm-5"></span></a>
+													<a href="#"><span class="ion-ios-star-outline fs-6 fs-sm-5"></span></a>
 												</p>
 											</div>
 										</div>
-										<h3>
+										<h3 class="fs-5 fs-sm-4 fs-md-3">
 											<a href="/shop/single?id=<%= product._id %>">
 												<%= product.name %>
 											</a>
@@ -203,7 +203,7 @@
 										<%if(product.price <=product.offer_price ){%>
 
 											<div class="pricing d-flex">
-												<p class="price" style="font-weight: 600;">
+												<p class="price fs-6 fs-sm-5" style="font-weight: 600;">
 													<span>₹ <%= product.price%> </span>
 												</p>
 											</div>
@@ -211,16 +211,16 @@
 											<%}else{%>
 
 												<div class="pricing d-flex">
-													<s class="price text-secondary">
+													<s class="price text-secondary fs-6 fs-sm-5">
 														<span>₹ <%=(product.price) %></span>
 													</s>
-													<p class="price mx-3" style="font-weight: 600;">
+													<p class="price mx-3 fs-6 fs-sm-5" style="font-weight: 600;">
 														<span>₹ <%= Math.round(product.offer_price) %> </span>
 													</p>
 												</div>
 
 												<div>
-													<p class="badge badge-success mt-2">
+													<p class="badge badge-success mt-2 fs-6 fs-sm-5">
 														<span>save ₹ <%=Math.round(product.price-product.offer_price)
 																%></span>
 													</p>

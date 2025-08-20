@@ -6,7 +6,7 @@ import dotenv from 'dotenv';
 
 dotenv.config();
 
-const {PORT,MONGODB_URI}= process.env;
+const { PORT, MONGODB_URI } = process.env;
 
 mongoose.connect(MONGODB_URI);
 
@@ -23,7 +23,7 @@ app.use((req, res, next) => {
     next();
 });
 
-app.set("view engine","ejs");
+app.set("view engine", "ejs");
 
 
 import adminRoute from "./routes/adminRoute.js";
@@ -54,15 +54,19 @@ app.use("/admin", adminRoute, productRoute, CategoryRoute, adminOrderRoute, offe
 
 app.use("/", userRoute, shopRoute, cartRoute, wishlistRoute, addressRoute, checkoutRoute, orderRoute, walletRoute);
 
-import {errorHandler} from "./middleware/errorHandler.js";
+import { errorHandler } from "./middleware/errorHandler.js";
 
 app.use(errorHandler);
 
-app.all("*",(req,res,next)=>{
-    res.render("user/error-404");
+app.get("/api/test", (_, res) => {
+    res.status(200).json({ message: "ok" });
 })
 
-app.listen(PORT,() => {
+app.all("*", (req, res, next) => {
+    res.render("user/error-404");
+});
+
+app.listen(PORT, () => {
     console.log(`server is running on port ${PORT}`);
 });
 

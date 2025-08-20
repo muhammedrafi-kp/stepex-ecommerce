@@ -27,7 +27,7 @@ const loadLogin = async (req, res, next) => {
 
 const loadDashboard = async (req, res, next) => {
     try {
-
+        console.log("loadDashboard");
         const { timePeriod } = req.query;
         let startDate, endDate;
 
@@ -122,7 +122,7 @@ const loadDashboard = async (req, res, next) => {
         const revenue = sales[0] ? sales[0].totalRevenue : 0;
         const totalSalesCount = sales[0] ? sales[0].totalSalesCount : 0;
 
-        const totalUsersCount = await User.find({}).count({});
+        const totalUsersCount = await User.countDocuments({});
 
 
         const bestSellingProducts = await Order.aggregate([
@@ -186,6 +186,7 @@ const loadDashboard = async (req, res, next) => {
         });
 
     } catch (error) {
+        console.log("error in loadDashboard", error);
         error.statusCode = 500;
         next(error);
     }

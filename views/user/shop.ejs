@@ -4,7 +4,6 @@
 			margin-top: 110px;
 			display: flex;
 			align-items: center;
-
 		}
 
 		.shop-heading {
@@ -13,6 +12,424 @@
 
 		.breadcrumbs {
 			text-align: right;
+		}
+
+		/* Filter toggle button - hidden by default */
+		.filter-toggle-btn {
+			display: none;
+		}
+
+		/* Responsive Design */
+		@media (max-width: 768px) {
+			.hero-wrap {
+				margin-top: 80px;
+				height: auto !important;
+				padding: 15px 0;
+			}
+
+			.shop-heading, .breadcrumbs {
+				text-align: center;
+				margin-bottom: 10px;
+			}
+
+			.breadcrumbs {
+				font-size: 14px;
+			}
+
+			.sort-container {
+				flex-direction: column;
+				align-items: flex-start;
+			}
+
+			.sort-container-right {
+				display: none !important;
+			}
+
+			.search-container {
+				width: 100%;
+			}
+
+			.search-container .search-form {
+				width: 100%;
+			}
+
+			.search-container .form-control {
+				width: 100%;
+			}
+
+			.products-container .col-6 {
+				padding: 5px;
+			}
+
+			.product .text h3 {
+				font-size: 16px;
+			}
+
+			.product .text .pricing {
+				flex-direction: column;
+				align-items: flex-start;
+			}
+
+			.product .text .pricing .price {
+				margin: 2px 0;
+			}
+
+			.filter-toggle-btn {
+				display: block !important;
+				position: fixed;
+				bottom: 20px;
+				right: 20px;
+				z-index: 1000;
+				width: 60px;
+				height: 60px;
+				border-radius: 50%;
+				background: #007bff;
+				color: white;
+				border: none;
+				box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+				transition: all 0.3s ease;
+			}
+
+			.filter-toggle-btn:hover {
+				background: #0056b3;
+				transform: scale(1.1);
+			}
+
+			.filter-toggle-btn i {
+				font-size: 24px;
+			}
+
+			.filter-sidebar {
+				position: fixed;
+				top: 0;
+				left: -100%;
+				width: 85%;
+				height: 100vh;
+				background: white;
+				z-index: 1001;
+				overflow-y: auto;
+				transition: left 0.3s ease;
+				box-shadow: 2px 0 10px rgba(0,0,0,0.1);
+				padding: 20px;
+			}
+
+			.filter-sidebar.active {
+				left: 0;
+			}
+
+			.filter-overlay {
+				position: fixed;
+				top: 0;
+				left: 0;
+				width: 100%;
+				height: 100%;
+				background: rgba(0,0,0,0.5);
+				z-index: 1000;
+				display: none;
+			}
+
+			.filter-overlay.active {
+				display: block;
+			}
+
+			.close-filter {
+				position: absolute;
+				top: 15px;
+				right: 15px;
+				background: none;
+				border: none;
+				font-size: 24px;
+				color: #666;
+				cursor: pointer;
+			}
+
+			.filter-header {
+				margin-bottom: 20px;
+				padding-bottom: 15px;
+				border-bottom: 2px solid #eee;
+			}
+
+			.filter-header h4 {
+				margin: 0;
+				color: #333;
+				font-weight: 600;
+			}
+
+			.mobile-sort-container {
+				margin-bottom: 20px;
+				padding-bottom: 15px;
+				border-bottom: 2px solid #eee;
+			}
+
+			.checkbox-item {
+				margin: 12px 0;
+			}
+
+			.checkbox-item label {
+				margin-left: 10px;
+				font-size: 16px;
+			}
+
+			#filter-btn {
+				width: 100%;
+				padding: 12px;
+				font-size: 16px;
+				margin-top: 20px;
+			}
+
+			.pagination {
+				flex-wrap: wrap;
+				gap: 5px;
+			}
+
+			.pagination a, .pagination span {
+				margin: 2px !important;
+				padding: 8px 12px;
+				font-size: 14px;
+			}
+		}
+
+		@media (max-width: 576px) {
+			.hero-wrap {
+				margin-top: 70px;
+			}
+
+			.products-container .col-6 {
+				padding: 3px;
+			}
+
+			.product .text {
+				padding: 10px 8px !important;
+			}
+
+			.product .text h3 {
+				font-size: 14px;
+				line-height: 1.3;
+			}
+
+			.filter-sidebar {
+				width: 90%;
+			}
+		}
+
+		@media (min-width: 769px) {
+			.filter-toggle-btn {
+				display: none !important;
+			}
+
+			.filter-sidebar {
+				position: static;
+				width: 100%;
+				height: auto;
+				overflow: visible;
+				box-shadow: none;
+				padding: 0;
+			}
+
+			.close-filter {
+				display: none !important;
+			}
+
+			.filter-header {
+				display: none !important;
+			}
+		}
+
+		/* Product grid improvements */
+		.products-container {
+			margin: 0 -10px;
+		}
+
+		.product {
+			height: 100%;
+			transition: transform 0.3s ease, box-shadow 0.3s ease;
+		}
+
+		.product:hover {
+			transform: translateY(-5px);
+			box-shadow: 0 8px 25px rgba(0,0,0,0.1);
+		}
+
+		.img-prod {
+			position: relative;
+			overflow: hidden;
+		}
+
+		.img-prod img {
+			transition: transform 0.3s ease;
+		}
+
+		.product:hover .img-prod img {
+			transform: scale(1.05);
+		}
+
+		/* Header layout improvements */
+		.sort-container {
+			background: #f8f9fa;
+			padding: 15px;
+			border-radius: 8px;
+			border: 1px solid #e9ecef;
+		}
+
+		.search-container {
+			flex: 1;
+			max-width: 400px;
+		}
+
+		.sort-container-right {
+			display: flex;
+			align-items: center;
+			gap: 10px;
+		}
+
+		.sort-container-right select {
+			border-radius: 25px;
+			border: 1px solid #ced4da;
+			padding: 8px 15px;
+			background-color: #ffffff;
+			transition: border-color 0.3s ease, box-shadow 0.3s ease;
+			width: 180px;
+			min-width: 150px;
+			appearance: none;
+			background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6,9 12,15 18,9'%3e%3c/polyline%3e%3c/svg%3e");
+			background-repeat: no-repeat;
+			background-position: right 12px center;
+			background-size: 16px;
+			padding-right: 40px;
+		}
+
+		.sort-container-right select:focus {
+			outline: none;
+			border-color: #007bff;
+			box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.25);
+		}
+
+		/* Style the dropdown options */
+		.sort-container-right select option {
+			border-radius: 8px;
+			margin: 2px;
+			padding: 8px 12px;
+			background-color: #ffffff;
+			border: 1px solid #e9ecef;
+		}
+
+		/* Custom dropdown styling for webkit browsers */
+		.sort-container-right select::-webkit-listbox {
+			border-radius: 16px;
+			border: 2px solid #ced4da;
+			background-color: #ffffff;
+			box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+			padding: 8px;
+		}
+
+		/* Webkit dropdown option styling */
+		.sort-container-right select::-webkit-option {
+			border-radius: 12px;
+			margin: 4px;
+			padding: 10px 15px;
+			background-color: #ffffff;
+			border: 1px solid #e9ecef;
+			transition: all 0.2s ease;
+		}
+
+		.sort-container-right select::-webkit-option:hover {
+			background-color: #f8f9fa;
+			border-color: #007bff;
+			transform: translateX(5px);
+		}
+
+		.sort-container-right select::-webkit-option:checked {
+			background-color: #007bff;
+			color: #ffffff;
+			border-color: #007bff;
+		}
+
+		/* Firefox dropdown styling */
+		.sort-container-right select:-moz-focusring {
+			color: transparent;
+			text-shadow: 0 0 0 #000;
+		}
+
+		/* Firefox dropdown listbox */
+		.sort-container-right select:-moz-listbox {
+			border-radius: 16px;
+			border: 2px solid #ced4da;
+			background-color: #ffffff;
+			box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+		}
+
+		/* Filter improvements */
+		.search-form {
+			margin-bottom: 0;
+		}
+
+		.search-form .form-group {
+			position: relative;
+		}
+
+		.search-form .icon {
+			position: absolute;
+			left: 12px;
+			top: 50%;
+			transform: translateY(-50%);
+			color: #6c757d;
+			z-index: 1;
+			pointer-events: none;
+		}
+
+		.search-form .form-control {
+			padding-left: 40px;
+			border-radius: 25px;
+			border: 1px solid #ced4da;
+			position: relative;
+			z-index: 2;
+		}
+
+		.sidebar-box {
+			background: white;
+			padding: 20px;
+			border-radius: 8px;
+			box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+		}
+
+		.checkbox-item input[type="checkbox"] {
+			width: 18px;
+			height: 18px;
+			margin-right: 8px;
+		}
+
+		.checkbox-item label {
+			cursor: pointer;
+			user-select: none;
+		}
+
+		/* Price range slider improvements */
+		#price-range {
+			display: block;
+			text-align: center;
+			font-weight: 600;
+			color: #007bff;
+			margin-top: 10px;
+		}
+
+		.ui-slider {
+			height: 6px;
+			border-radius: 3px;
+			background: #e9ecef;
+		}
+
+		.ui-slider-range {
+			background: #007bff;
+		}
+
+		.ui-slider-handle {
+			width: 20px;
+			height: 20px;
+			border-radius: 50%;
+			background: #007bff;
+			border: 2px solid white;
+			cursor: pointer;
+			top: -7px;
 		}
 	</style>
 
@@ -38,19 +455,38 @@
 		</div>
 	</div>
 
+	<!-- Filter Overlay for Mobile -->
+	<div class="filter-overlay" id="filterOverlay"></div>
+
+	<!-- Filter Toggle Button for Mobile -->
+	<button class="filter-toggle-btn" id="filterToggleBtn" title="Filters">
+		<i class="ion-ios-funnel"></i>
+	</button>
+
 	<section class="ftco-section bg-light ">
 		<div class="container mt-0">
 
-			<div class="d-flex justify-content-end mb-4 bg-light">
-				<p style="color: #000; font-weight: 600; " class="m-2 ">SORT BY :</p>
-				<select id="sortBy" style="height: 40px; background-color: #ffffffa6;" class="w-25">
-					<option value="new-to-old" <% if (sortBy==='new-to-old' ) { %>selected<% } %>>Default</option>
-					<option value="old-to-new" <% if (sortBy==='old-to-new' ) { %>selected<% } %>>Old to New</option>
-					<option value="high-to-low" <% if (sortBy==='high-to-low' ) { %>selected<% } %>>Price: High to Low
-					</option>
-					<option value="low-to-high" <% if (sortBy==='low-to-high' ) { %>selected<% } %>>Price: Low to High
-					</option>
-				</select>
+			<div class="d-flex justify-content-between align-items-center mb-4 bg-light sort-container">
+				<div class="search-container">
+					<form action="#" class="search-form">
+						<div class="form-group mb-0">
+							<span class="icon ion-ios-search"></span>
+							<input type="text" class="form-control" id="search" placeholder="Search for a product"
+								autocomplete="off">
+						</div>
+					</form>
+				</div>
+				<div class="sort-container-right">
+					<p style="color: #000; font-weight: 600; " class="m-2 mb-0">SORT BY :</p>
+					<select id="sortBy" style="height: 40px; background-color: #ffffffa6;" class="w-25">
+						<option value="new-to-old" <% if (sortBy==='new-to-old' ) { %>selected<% } %>>Default</option>
+						<option value="old-to-new" <% if (sortBy==='old-to-new' ) { %>selected<% } %>>Old to New</option>
+						<option value="high-to-low" <% if (sortBy==='high-to-low' ) { %>selected<% } %>>Price: High to Low
+						</option>
+						<option value="low-to-high" <% if (sortBy==='low-to-high' ) { %>selected<% } %>>Price: Low to High
+						</option>
+					</select>
+				</div>
 			</div>
 
 			<div class="row">
@@ -58,7 +494,7 @@
 					<% if(products&&products.length>0){ %>
 						<div class="row products-container">
 							<% products.forEach((product)=>{%>
-								<div class="col-sm-6 col-md-6 col-lg-4 ftco-animate d-flex">
+								<div class="col-6 col-sm-4 col-md-4 ftco-animate d-flex">
 									<div class="product d-flex flex-column">
 
 										<a href="/shop/single?id=<%= product._id %>" class="img-prod"><img
@@ -206,14 +642,22 @@
 
 				</div>
 
-				<div class="col-md-4 col-lg-3">
-					<form action="#" class="search-form">
-						<div class="form-group">
-							<span class="icon ion-ios-search"></span>
-							<input type="text" class="form-control" id="search" placeholder="Search for a product"
-								autocomplete="off">
-						</div>
-					</form>
+				<div class="col-md-4 col-lg-3 filter-sidebar" id="filterSidebar">
+					<button class="close-filter" id="closeFilter">&times;</button>
+					<div class="filter-header">
+						<h4><i class="ion-ios-funnel mr-2"></i>Filters</h4>
+					</div>
+
+					<!-- Mobile Sort Options -->
+					<div class="mobile-sort-container d-md-none">
+						<h5 style="color: #000; font-weight: 600; margin-bottom: 15px;">SORT BY</h5>
+						<select id="mobileSortBy" class="form-control mb-3" style="height: 45px; background-color: #ffffff;">
+							<option value="new-to-old" <% if (sortBy==='new-to-old' ) { %>selected<% } %>>Default</option>
+							<option value="old-to-new" <% if (sortBy==='old-to-old' ) { %>selected<% } %>>Old to New</option>
+							<option value="high-to-low" <% if (sortBy==='high-to-low' ) { %>selected<% } %>>Price: High to Low</option>
+							<option value="low-to-high" <% if (sortBy==='low-to-high' ) { %>selected<% } %>>Price: Low to High</option>
+						</select>
+					</div>
 
 					<div class="sidebar-box ">
 
@@ -346,8 +790,97 @@
 		});
 	</script>
 
-
 	<script>
+		// Mobile filter functionality
+		const filterToggleBtn = document.getElementById('filterToggleBtn');
+		const filterSidebar = document.getElementById('filterSidebar');
+		const filterOverlay = document.getElementById('filterOverlay');
+		const closeFilter = document.getElementById('closeFilter');
+		const desktopSortBy = document.getElementById('sortBy');
+		const mobileSortBy = document.getElementById('mobileSortBy');
+
+		// Sync sort options between desktop and mobile
+		function syncSortOptions() {
+			if (desktopSortBy && mobileSortBy) {
+				mobileSortBy.value = desktopSortBy.value;
+			}
+		}
+
+		// Update mobile sort when desktop changes
+		if (desktopSortBy) {
+			desktopSortBy.addEventListener('change', function() {
+				if (mobileSortBy) {
+					mobileSortBy.value = this.value;
+				}
+				// Trigger search/filter update when sort changes
+				updateProductsOnSortChange();
+			});
+		}
+
+		// Update desktop sort when mobile changes
+		if (mobileSortBy) {
+			mobileSortBy.addEventListener('change', function() {
+				if (desktopSortBy) {
+					desktopSortBy.value = this.value;
+				}
+				// Trigger search/filter update when sort changes
+				updateProductsOnSortChange();
+			});
+		}
+
+		// Function to update products when sort changes
+		function updateProductsOnSortChange() {
+			const searchQuery = document.getElementById('search').value.trim();
+			const categoryFilters = Array.from(document.querySelectorAll('input[name="category"]:checked')).map(input => input.value).join(',');
+			const genderFilters = Array.from(document.querySelectorAll('input[name="gender"]:checked')).map(input => input.value).join(',');
+			const priceRange = $("#price-range-slider").slider("values");
+			const minPrice = priceRange[0];
+			const maxPrice = priceRange[1];
+			const sortBy = document.getElementById('sortBy').value;
+
+			const queryParams = new URLSearchParams({
+				search: searchQuery,
+				category: categoryFilters,
+				gender: genderFilters,
+				minPrice: minPrice,
+				maxPrice: maxPrice,
+				sortBy: sortBy
+			});
+
+			window.location.href = `/shop?${queryParams}`;
+		}
+
+		function openFilter() {
+			filterSidebar.classList.add('active');
+			filterOverlay.classList.add('active');
+			document.body.style.overflow = 'hidden';
+			syncSortOptions(); // Ensure sort options are synced when opening
+		}
+
+		function closeFilterSidebar() {
+			filterSidebar.classList.remove('active');
+			filterOverlay.classList.remove('active');
+			document.body.style.overflow = 'auto';
+		}
+
+		filterToggleBtn.addEventListener('click', openFilter);
+		closeFilter.addEventListener('click', closeFilterSidebar);
+		filterOverlay.addEventListener('click', closeFilterSidebar);
+
+		// Close filter on escape key
+		document.addEventListener('keydown', function(e) {
+			if (e.key === 'Escape') {
+				closeFilterSidebar();
+			}
+		});
+
+		// Close filter after applying
+		document.getElementById('filter-btn').addEventListener('click', function() {
+			setTimeout(() => {
+				closeFilterSidebar();
+			}, 100);
+		});
+
 		const addToCartButtons = document.querySelectorAll('.addToCart');
 
 		addToCartButtons.forEach(button => {
@@ -423,10 +956,51 @@
 
 	<script>
 
-		// Function to fetch filtered products
+		// Debounce function for search
+		function debounce(func, wait) {
+			let timeout;
+			return function executedFunction(...args) {
+				const later = () => {
+					clearTimeout(timeout);
+					func(...args);
+				};
+				clearTimeout(timeout);
+				timeout = setTimeout(later, wait);
+			};
+		}
+
+		// Function to fetch products based on search only
+		const fetchProductsBySearch = async (searchQuery) => {
+			try {
+				const currentUrl = new URL(window.location);
+				currentUrl.searchParams.set('search', searchQuery);
+				currentUrl.searchParams.set('page', '1'); // Reset to first page on search
+				
+				// Keep existing filter params
+				const categoryFilters = Array.from(document.querySelectorAll('input[name="category"]:checked')).map(input => input.value).join(',');
+				const genderFilters = Array.from(document.querySelectorAll('input[name="gender"]:checked')).map(input => input.value).join(',');
+				const priceRange = $("#price-range-slider").slider("values");
+				const minPrice = priceRange[0];
+				const maxPrice = priceRange[1];
+				const sortBy = document.getElementById('sortBy').value;
+
+				if (categoryFilters) currentUrl.searchParams.set('category', categoryFilters);
+				if (genderFilters) currentUrl.searchParams.set('gender', genderFilters);
+				if (minPrice !== 0 || maxPrice !== 10000) {
+					currentUrl.searchParams.set('minPrice', minPrice);
+					currentUrl.searchParams.set('maxPrice', maxPrice);
+				}
+				if (sortBy !== 'new-to-old') currentUrl.searchParams.set('sortBy', sortBy);
+
+				window.location.href = currentUrl.toString();
+			} catch (error) {
+				console.error('Error searching products:', error);
+			}
+		};
+
+		// Function to fetch filtered products (for filters only)
 		const fetchFilteredProducts = async () => {
 			try {
-
 				const searchQuery = document.getElementById('search').value.trim();
 				const categoryFilters = Array.from(document.querySelectorAll('input[name="category"]:checked')).map(input => input.value).join(',');
 				const genderFilters = Array.from(document.querySelectorAll('input[name="gender"]:checked')).map(input => input.value).join(',');
@@ -443,30 +1017,74 @@
 					maxPrice: maxPrice,
 					sortBy: sortBy
 				});
-				console.log(queryParams)
-				console.log("enetered")
+				
 				window.location.href = `/shop?${queryParams}`;
-
 			} catch (error) {
-				console.error('Error filtered products:', error);
+				console.error('Error filtering products:', error);
 			}
 		};
+
+		// Debounced search function
+		const debouncedSearch = debounce((searchQuery) => {
+			fetchProductsBySearch(searchQuery);
+		}, 500); // 500ms delay
+
+		// Set search input value from URL parameters on page load and restore filter states
+		document.addEventListener('DOMContentLoaded', function() {
+			const urlParams = new URLSearchParams(window.location.search);
+			const searchValue = urlParams.get('search');
+			if (searchValue) {
+				document.getElementById('search').value = searchValue;
+			}
+			
+			// Check if any filters are active and show clear all button
+			checkAndShowClearAllButton();
+		});
+
+		// Search input event listener with debouncing
+		document.getElementById('search').addEventListener('input', function(e) {
+			const searchQuery = e.target.value.trim();
+			if (searchQuery.length === 0) {
+				// If search is cleared, refresh with current filters
+				const currentUrl = new URL(window.location);
+				currentUrl.searchParams.delete('search');
+				currentUrl.searchParams.set('page', '1');
+				window.location.href = currentUrl.toString();
+			} else {
+				debouncedSearch(searchQuery);
+			}
+		});
 
 		// Call the fetchFilteredProducts function whenever filter btn clicks 
 		document.getElementById('filter-btn').addEventListener('click', fetchFilteredProducts);
 		document.getElementById("clear-all").addEventListener("click", function () {
 			window.location.href = "/shop";
-
 		});
 
+		// Function to check and show/hide clear all button
+		function checkAndShowClearAllButton() {
+			const clearAllButton = document.getElementById('clear-all');
+			const hasCheckedFilters = document.querySelector('input[type="checkbox"]:checked');
+			
+			// Check if price range is modified from default
+			const priceRange = $("#price-range-slider").slider("values");
+			const hasPriceFilter = priceRange[0] !== 0 || priceRange[1] !== 10000;
+			
+			// Check if search is active
+			const searchValue = document.getElementById('search').value.trim();
+			const hasSearch = searchValue.length > 0;
+			
+			if (hasCheckedFilters || hasPriceFilter || hasSearch) {
+				clearAllButton.style.display = 'block';
+			} else {
+				clearAllButton.style.display = 'none';
+			}
+		}
+
+		// Add event listeners to all checkboxes
 		document.querySelectorAll('input[type="checkbox"]').forEach(function (checkbox) {
 			checkbox.addEventListener('change', function () {
-				const clearAllButton = document.getElementById('clear-all');
-				if (document.querySelector('input[type="checkbox"]:checked')) {
-					clearAllButton.style.display = 'block';
-				} else {
-					clearAllButton.style.display = 'none';
-				}
+				checkAndShowClearAllButton();
 			});
 		});
 
