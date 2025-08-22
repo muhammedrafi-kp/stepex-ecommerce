@@ -79,7 +79,7 @@ pm2 start app.js --name stepex
 
 # Configure Nginx (example configuration needed)
 sudo systemctl start nginx -->
-```
+<!-- ``` -->
 
 ## 🎯 Key Achievements
 
