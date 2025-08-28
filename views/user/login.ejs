@@ -23,8 +23,23 @@
 								</div>
 								<div class="form-group mb-3">
 									<label class="label m-0 " for="password">Password</label>
-									<input type="password" id="password" name="password" class="form-control"
-										placeholder="Password">
+									<div style="position: relative;">
+										<input type="password" id="password" name="password" class="form-control"
+											placeholder="Password">
+										<button type="button" class="toggle-password" data-target="password" aria-label="Show password" style="position:absolute; right:12px; top:50%; transform: translateY(-50%); background: none; border: none; padding: 4px; cursor: pointer;">
+											<span class="eye-icon" aria-hidden="true">
+												<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+													<path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7-11-7-11-7z"></path>
+													<circle cx="12" cy="12" r="3"></circle>
+												</svg>
+											</span>
+											<span class="eye-off-icon" style="display:none;" aria-hidden="true">
+												<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+													<path d="M17.94 17.94A10.94 10.94 0 0 1 12 20c-7 0-11-8-11-8a21.77 21.77 0 0 1 5.06-6.94M9.9 4.24A10.94 10.94 0 0 1 12 4c7 0 11 8 11 8a21.8 21.8 0 0 1-3.22 4.49M1 1l22 22"></path>
+												</svg>
+											</span>
+										</button>
+									</div>
 									<span id="password-error" style="color:#BA0933; font-size: 13px;"></span>
 								</div>
 								<div>
@@ -39,7 +54,7 @@
 							</form>
 
 							<div class="d-flex justify-content-end ">
-								<a href="/reset-password-link">Forgot Password ?</a>
+								<a href="/password/reset-link">Forgot Password ?</a>
 							</div>
 							<div class="d-flex justify-content-center mt-3">
 								<p class="text-center">Don't have an account ?<a href="/register"> Sign
@@ -54,12 +69,47 @@
 		</div>
 	</section>
 
+	<style>
+		.toggle-password:focus { outline: none; }
+	</style>
+
 	<script src="https://cdn.jsdelivr.net/npm/sweetalert2@10"></script>
 
 	<script>
 
 		document.addEventListener('DOMContentLoaded', function () {
 			const signInBtn = document.querySelector('.submit-btn');
+			const toggleButtons = document.querySelectorAll('.toggle-password');
+
+			toggleButtons.forEach(function(btn){
+				btn.addEventListener('click', function(){
+					const targetId = btn.getAttribute('data-target');
+					const input = document.getElementById(targetId);
+					if(!input) return;
+					const isPassword = input.getAttribute('type') === 'password';
+					input.setAttribute('type', isPassword ? 'text' : 'password');
+					btn.setAttribute('aria-label', isPassword ? 'Hide password' : 'Show password');
+					const eye = btn.querySelector('.eye-icon');
+					const eyeOff = btn.querySelector('.eye-off-icon');
+					if(eye && eyeOff){
+						eye.style.display = isPassword ? 'none' : '';
+						eyeOff.style.display = isPassword ? '' : 'none';
+					}
+				});
+			});
+
+			function setLoadingState(button) {
+				if (!button.dataset.originalText) {
+					button.dataset.originalText = button.innerHTML;
+				}
+				button.disabled = true;
+				button.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Signing In...';
+			}
+
+			function clearLoadingState(button) {
+				button.disabled = false;
+				button.innerHTML = button.dataset.originalText || 'Sign In';
+			}
 
 			const urlParams = new URLSearchParams(window.location.search);
 			const isBlocked = urlParams.get('blocked') === 'true';
@@ -88,6 +138,7 @@
 				if (validateForm()) {
 					const email = document.getElementById('email').value;
 					const password = document.getElementById('password').value;
+					setLoadingState(signInBtn);
 
 					fetch('/login', {
 						method: 'POST',
@@ -101,7 +152,6 @@
 
 								window.location.href = '/';
 							} else {
-								
 								return response.json();
 							}
 						})
@@ -128,12 +178,14 @@
 							} else {
 								// Update the message span with the received message
 								document.getElementById('message').textContent = data && data.message ? data.message : '';
-								document.getElementById('password').value = '';
+								// document.getElementById('password').value = '';
 							}
+							clearLoadingState(signInBtn);
 						})
 						.catch(error => {
 							console.error('Error:', error);
 							alert('Failed to login. Please try again.');
+							clearLoadingState(signInBtn);
 						});
 				}
 			});

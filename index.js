@@ -3,12 +3,16 @@ import express from "express";
 import session from "express-session";
 import { sessionSecret } from "./config/config.js";
 import dotenv from 'dotenv';
+import morgan from "morgan";
 
 dotenv.config();
 
 const { PORT, MONGODB_URI } = process.env;
 
-mongoose.connect(MONGODB_URI);
+mongoose.connect(MONGODB_URI)
+    .then(() => console.log("✅ Connected to MongoDB"))
+    .catch(err => console.error("❌ MongoDB connection error:", err));
+
 
 const app = express();
 
@@ -48,7 +52,13 @@ import walletRoute from "./routes/walletRoute.js";
 app.use(express.static('public'));
 
 app.use(express.json());
+
 app.use(express.urlencoded({ extended: true }));
+
+app.use((req, res, next) => {
+    console.log(`[${req.method}] ${req.url}`);
+    next();
+});
 
 app.use("/admin", adminRoute, productRoute, CategoryRoute, adminOrderRoute, offerRoute, couponRoute, bannerRoute, salesRoute);
 
@@ -63,6 +73,7 @@ app.get("/api/test", (_, res) => {
 })
 
 app.all("*", (req, res, next) => {
+    console.log(req.url)
     res.render("user/error-404");
 });
 

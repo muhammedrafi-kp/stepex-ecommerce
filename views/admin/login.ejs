@@ -27,9 +27,13 @@
                   <% } %>
 
                     <div class="mt-3">
-                      <a> <button class="btn btn-block btn-gradient-primary btn-lg font-weight-medium auth-form-btn"
-                          type="submit"> SIGN IN </button> </a>
-
+                      <button class="btn btn-block btn-gradient-primary btn-lg font-weight-medium auth-form-btn"
+                          type="submit" id="signin-btn">
+                        <span id="btn-text">SIGN IN</span>
+                        <span id="btn-loader" style="display: none;">
+                          <i class="mdi mdi-loading mdi-spin"></i> Loading...
+                        </span>
+                      </button>
                     </div>
                     <div class="my-2 d-flex justify-content-between align-items-center">
                     </div>
@@ -75,7 +79,23 @@
         document.getElementById("password-error").textContent = "";
       }
 
+      if (isValid) {
+        // Show loading animation
+        showLoading();
+      }
+
       return isValid;
+    }
+
+    function showLoading() {
+      const btn = document.getElementById('signin-btn');
+      const btnText = document.getElementById('btn-text');
+      const btnLoader = document.getElementById('btn-loader');
+      
+      // Disable button and show loading
+      btn.disabled = true;
+      btnText.style.display = 'none';
+      btnLoader.style.display = 'inline-block';
     }
 
     (function () {

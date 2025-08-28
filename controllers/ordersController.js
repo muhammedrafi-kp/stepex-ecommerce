@@ -16,7 +16,7 @@ const razorpay = new Razorpay({
 });
 
 
-const laodOrders = async (req, res,next) => {
+const laodOrders = async (req, res, next) => {
     try {
         const userId = req.session._id;
         const userData = await User.findOne({ _id: userId });
@@ -48,7 +48,7 @@ const loadOrderDetails = async (req, res, next) => {
         const userData = await User.findOne({ _id: userId });
 
         const orderData = await Order.findOne({ user: req.session._id, orderId: orderId }).populate("user");
-        if(!orderData){
+        if (!orderData) {
             return res.redirect('/orders');
         }
 
@@ -64,7 +64,7 @@ const loadOrderDetails = async (req, res, next) => {
 }
 
 
-const cancelOrder = async (req, res,next) => {
+const cancelOrder = async (req, res, next) => {
     try {
 
         console.log("cancel order")
@@ -125,7 +125,7 @@ const cancelOrder = async (req, res,next) => {
 }
 
 
-const returnOrder = async (req, res,next) => {
+const returnOrder = async (req, res, next) => {
     try {
         console.log("return order")
         const { productId, orderId, returnReason } = req.body;
@@ -147,7 +147,7 @@ const returnOrder = async (req, res,next) => {
 }
 
 
-const loadAdminOrders = async (req, res,next) => {
+const loadAdminOrders = async (req, res, next) => {
 
     try {
         const page = parseInt(req.query.page) || 1;
@@ -155,7 +155,7 @@ const loadAdminOrders = async (req, res,next) => {
         const skip = (page - 1) * limit;
         const totalCount = await Order.countDocuments();
         const totalPages = Math.ceil(totalCount / limit);
-        const ordersData = await Order.find().populate("user").skip(skip).limit(limit);
+        const ordersData = await Order.find().populate("user").skip(skip).limit(limit).sort({ date: -1 });
 
         res.render("orders", { orders: ordersData, currentPage: page, totalPages: totalPages });
 
@@ -166,7 +166,7 @@ const loadAdminOrders = async (req, res,next) => {
 }
 
 
-const loadAdminOrderDetails = async (req, res,next) => {
+const loadAdminOrderDetails = async (req, res, next) => {
     try {
         const orderId = req.query.id;
         console.log("order id:", orderId);
@@ -181,7 +181,7 @@ const loadAdminOrderDetails = async (req, res,next) => {
 }
 
 
-const changeOrderStatus = async (req, res,next) => {
+const changeOrderStatus = async (req, res, next) => {
     try {
         console.log("hello");
         const { orderId, productId, status } = req.body;
@@ -215,7 +215,7 @@ const changeOrderStatus = async (req, res,next) => {
 }
 
 
-const approveReturn = async (req, res,next) => {
+const approveReturn = async (req, res, next) => {
     try {
         console.log("return order")
         const { productId, orderId, reason } = req.body;
@@ -275,7 +275,7 @@ const approveReturn = async (req, res,next) => {
 }
 
 
-const declineReturn = async (req, res,next) => {
+const declineReturn = async (req, res, next) => {
 
     try {
         console.log("return order")
@@ -306,7 +306,7 @@ const generatereceiptID = () => {
     return Math.floor(Math.random() * (max - min + 1) + min);
 }
 
-const orderRepaymentRazorPpay = async (req, res,next) => {
+const orderRepaymentRazorPpay = async (req, res, next) => {
     try {
         console.log(razorpay.key_id, razorpay.key_secret);
 
@@ -330,7 +330,7 @@ const orderRepaymentRazorPpay = async (req, res,next) => {
 }
 
 
-const orderRepayment = async (req, res,next) => {
+const orderRepayment = async (req, res, next) => {
     try {
 
         const { orderId } = req.body;

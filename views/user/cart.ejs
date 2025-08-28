@@ -242,8 +242,8 @@
 						</p>
 					</div>
 					<p class="text-center ">
-						<a href="" class="btn btn-primary font-weight-bold checkout-btn py-3 px-4 rounded"
-							>Proceed to Checkout</a></p>
+						<button type="button" class="btn btn-primary font-weight-bold checkout-btn py-3 px-4 rounded"
+							>Proceed to Checkout</button></p>
 				</div>
 			</div>
 
@@ -389,9 +389,7 @@
 
 				Toast.fire({
 					icon: "warning",
-
 					title: 'Maximum Quantity Reached',
-
 				});
 
 			}
@@ -501,8 +499,21 @@
 		document.addEventListener('DOMContentLoaded', function () {
 			const checkoutButton = document.querySelector('.checkout-btn');
 
-			checkoutButton.addEventListener('click', function (event) {
+			function setLoadingState(button) {
+				if (!button.dataset.originalText) {
+					button.dataset.originalText = button.innerHTML;
+				}
+				button.disabled = true;
+				button.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Processing...';
+			}
 
+			function clearLoadingState(button) {
+				button.disabled = false;
+				button.innerHTML = button.dataset.originalText || 'Proceed to Checkout';
+			}
+
+			checkoutButton.addEventListener('click', function (event) {
+				setLoadingState(checkoutButton);
 				console.log("checkout");
 				fetch('/proceed-to-checkout', {
 					method: 'POST',
@@ -526,9 +537,11 @@
 								location.reload();
 							});
 						}
+						clearLoadingState(checkoutButton);
 					})
 					.catch(error => {
 						console.error('Error while proceeding to checkout:', error);
+						clearLoadingState(checkoutButton);
 					});
 			});
 		});

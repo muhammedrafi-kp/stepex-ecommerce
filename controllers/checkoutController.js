@@ -219,6 +219,7 @@ const confirmOrder = async (req, res, next) => {
 
         let outOfStockProducts = [];
         let maxStockExceed = [];
+
         if (cartData) {
             for (const item of cartData.items) {
                 console.log(item.quantity)
@@ -365,7 +366,9 @@ const confirmOrder = async (req, res, next) => {
 
                 await wallet.save();
             }
-
+            if (req.session.paymentLock) {
+                delete req.session.paymentLock;
+            }
             res.status(200).json({ success: true });
         }
 
@@ -385,6 +388,19 @@ const generatereceiptID = () => {
 
 const createRazorPay = async (req, res, next) => {
     try {
+        console.log("paymentLock:", req.session.paymentLock);
+        if (req.session.paymentLock) {
+            let { expireAt } = req.session.paymentLock;
+            const now = new Date();
+            expireAt = new Date(expireAt);
+
+            if (now < expireAt) {
+                return res.status(400).json({ success: false, message: 'Payment already in progress. Please wait for the previous payment to complete.' });
+            }
+            console.log("Previous payment lock expired, allowing new order");
+            delete req.session.paymentLock;
+        }
+
         console.log(razorpay.key_id, razorpay.key_secret);
         const userId = req.session._id;
         const cartData = await Cart.findOne({ user_id: userId }).populate('items.products');
@@ -396,6 +412,7 @@ const createRazorPay = async (req, res, next) => {
             }
         }
 
+
         if (req.session.discount) {
             totalAmount -= (totalAmount * (req.session.discount / 100));
             totalAmount = Math.round(totalAmount);
@@ -403,21 +420,34 @@ const createRazorPay = async (req, res, next) => {
 
         const receiptID = generatereceiptID();
 
-        const order = await razorpay.orders.create({
+        const razorpayOrder = await razorpay.orders.create({
             amount: totalAmount * 100,
             currency: 'INR',
             receipt: `${receiptID}`,
             payment_capture: 1
         });
 
-        res.status(200).json({ success: true, order });
+        req.session.paymentLock = {
+            orderId: razorpayOrder.id,
+            expireAt: new Date(Date.now() + 5 * 60 * 1000)
+        }
+
+        res.status(200).json({ success: true, order: razorpayOrder });
     } catch (error) {
         error.statusCode = 500;
         next(error);
     }
 };
 
-
+const paymentUnlock = async (req, res, next) => {
+    try {
+        delete req.session.paymentLock;
+        res.status(200).json({ success: true });
+    } catch (error) {
+        error.statusCode = 500;
+        next(error);
+    }
+}
 
 const loadOrderPlaced = async (req, res, next) => {
     try {
@@ -444,5 +474,6 @@ export {
     loadPayment,
     confirmOrder,
     loadOrderPlaced,
-    createRazorPay
+    createRazorPay,
+    paymentUnlock
 }

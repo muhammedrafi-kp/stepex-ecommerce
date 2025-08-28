@@ -15,7 +15,7 @@
                                 </div>
                             </div>
 
-                            <form action="\register" method="post" class="signin-form" onsubmit="return validateForm()">
+                            <form action="/register" method="post" class="signin-form">
                                 <div class="form-group mb-3">
                                     <label class="label m-0 " for="name">Username</label>
                                     <input type="text" id="name" name="name" class="form-control" placeholder="Username"
@@ -37,14 +37,44 @@
                                 </div>
                                 <div class="form-group mb-3">
                                     <label class="label m-0 " for="password">Password</label>
-                                    <input type="password" id="password" name="password" class="form-control"
-                                        placeholder="Password">
+                                    <div style="position: relative;">
+                                        <input type="password" id="password" name="password" class="form-control"
+                                            placeholder="Password">
+                                        <button type="button" class="toggle-password" data-target="password" aria-label="Show password" style="position:absolute; right:12px; top:50%; transform: translateY(-50%); background: none; border: none; padding: 4px; cursor: pointer;">
+                                            <span class="eye-icon" aria-hidden="true">
+                                                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                                    <path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7-11-7-11-7z"></path>
+                                                    <circle cx="12" cy="12" r="3"></circle>
+                                                </svg>
+                                            </span>
+                                            <span class="eye-off-icon" style="display:none;" aria-hidden="true">
+                                                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                                    <path d="M17.94 17.94A10.94 10.94 0 0 1 12 20c-7 0-11-8-11-8a21.77 21.77 0 0 1 5.06-6.94M9.9 4.24A10.94 10.94 0 0 1 12 4c7 0 11 8 11 8a21.8 21.8 0 0 1-3.22 4.49M1 1l22 22"></path>
+                                                </svg>
+                                            </span>
+                                        </button>
+                                    </div>
                                     <span id="password-error" style="color: red; font-size: 14px;"></span>
                                 </div>
                                 <div class="form-group mb-3">
                                     <label class="label m-0 " for="password">Confirm Password</label>
-                                    <input type="password" id="confirmPassword" name="confirmPassword"
-                                        class="form-control" placeholder="Password">
+                                    <div style="position: relative;">
+                                        <input type="password" id="confirmPassword" name="confirmPassword"
+                                            class="form-control" placeholder="Password">
+                                        <button type="button" class="toggle-password" data-target="confirmPassword" aria-label="Show password" style="position:absolute; right:12px; top:50%; transform: translateY(-50%); background: none; border: none; padding: 4px; cursor: pointer;">
+                                            <span class="eye-icon" aria-hidden="true">
+                                                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                                    <path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7-11-7-11-7z"></path>
+                                                    <circle cx="12" cy="12" r="3"></circle>
+                                                </svg>
+                                            </span>
+                                            <span class="eye-off-icon" style="display:none;" aria-hidden="true">
+                                                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                                    <path d="M17.94 17.94A10.94 10.94 0 0 1 12 20c-7 0-11-8-11-8a21.77 21.77 0 0 1 5.06-6.94M9.9 4.24A10.94 10.94 0 0 1 12 4c7 0 11 8 11 8a21.8 21.8 0 0 1-3.22 4.49M1 1l22 22"></path>
+                                                </svg>
+                                            </span>
+                                        </button>
+                                    </div>
                                     <span id="confirmPassword-error" style="color: red; font-size: 14px;"></span>
                                 </div>
 
@@ -69,6 +99,24 @@
             </div>
         </div>
     </section>
+
+    <style>
+        .btn-spinner {
+            display: inline-block;
+            width: 1rem;
+            height: 1rem;
+            border: 0.15em solid rgba(255, 255, 255, 0.35);
+            border-top-color: #ffffff;
+            border-radius: 50%;
+            animation: btn-spin 0.6s linear infinite;
+            margin-right: 0.5rem;
+            vertical-align: text-bottom;
+        }
+        @keyframes btn-spin {
+            to { transform: rotate(360deg); }
+        }
+        .toggle-password:focus { outline: none; }
+    </style>
 
 
     <script>
@@ -138,7 +186,7 @@
             } else if (/^(\d)\1+$/.test(mobile)) {
                 document.getElementById("mobile-error").textContent = "Mobile number should not contain all same digits.";
                 isValid = false;
-            } else if (mobile.match(/0/g).length > 5) {
+            } else if ((mobile.match(/0/g) || []).length > 5) {
                 document.getElementById("mobile-error").textContent = "Mobile number should not contain more than 5 zeros.";
                 isValid = false;
             } else if (!/^\d{10}$/.test(mobile)) {
@@ -151,6 +199,49 @@
 
             return isValid;
         }
+        
+        document.addEventListener('DOMContentLoaded', function () {
+            var form = document.querySelector('.signin-form');
+            if (!form) return;
+            var registerBtn = form.querySelector('button[type="submit"]');
+            if (!registerBtn) return;
+
+            form.addEventListener('submit', function (e) {
+                e.preventDefault();
+                var isValid = validateForm();
+                if (isValid) {
+                    if (!registerBtn.dataset.originalText) {
+                        registerBtn.dataset.originalText = registerBtn.innerHTML;
+                    }
+                    registerBtn.disabled = true;
+                    registerBtn.innerHTML = '<span class="btn-spinner" aria-hidden="true"></span> Registering...';
+                    form.submit();
+                } else {
+                    if (registerBtn.disabled) {
+                        registerBtn.disabled = false;
+                        registerBtn.innerHTML = registerBtn.dataset.originalText || 'Register';
+                    }
+                }
+            });
+
+            var toggleButtons = document.querySelectorAll('.toggle-password');
+            toggleButtons.forEach(function(btn){
+                btn.addEventListener('click', function(){
+                    var targetId = btn.getAttribute('data-target');
+                    var input = document.getElementById(targetId);
+                    if(!input) return;
+                    var isPassword = input.getAttribute('type') === 'password';
+                    input.setAttribute('type', isPassword ? 'text' : 'password');
+                    btn.setAttribute('aria-label', isPassword ? 'Hide password' : 'Show password');
+                    var eye = btn.querySelector('.eye-icon');
+                    var eyeOff = btn.querySelector('.eye-off-icon');
+                    if(eye && eyeOff){
+                        eye.style.display = isPassword ? 'none' : '';
+                        eyeOff.style.display = isPassword ? '' : 'none';
+                    }
+                });
+            });
+        });
         
     </script>
 

@@ -24,7 +24,8 @@
                             <div style="font-size: 14px;" class="my-3">
                                 <span>Haven't received the OTP?</span>
                                 <span id="timer"></span>
-                                <span style="display:none; cursor: pointer;" id="resend-OTP" class="text-info">Resend OTP</span>
+                                <span style="display:none; cursor: pointer;" id="resend-OTP" class="text-info">Resend
+                                    OTP</span>
                             </div>
 
                             <div class="form-group">
@@ -41,16 +42,51 @@
         </div>
     </section>
 
+    <style>
+        .btn-spinner {
+            display: inline-block;
+            width: 1rem;
+            height: 1rem;
+            border: 0.15em solid rgba(255, 255, 255, 0.35);
+            border-top-color: #ffffff;
+            border-radius: 50%;
+            animation: btn-spin 0.6s linear infinite;
+            margin-right: 0.5rem;
+            vertical-align: text-bottom;
+        }
+
+        @keyframes btn-spin {
+            to {
+                transform: rotate(360deg);
+            }
+        }
+    </style>
+
     <script>
 
 
-      
+
+
+        // Make loaders available globally so verifyOTP can call them
+        function setLoadingState(button) {
+            if (!button.dataset.originalText) {
+                button.dataset.originalText = button.innerHTML;
+            }
+            button.disabled = true;
+            button.innerHTML = '<span class="btn-spinner" aria-hidden="true"></span> Verifying...';
+        }
+
+        function clearLoadingState(button) {
+            button.disabled = false;
+            button.innerHTML = button.dataset.originalText || 'Verify';
+        }
 
         document.addEventListener("DOMContentLoaded", function () {
             startTimer(30, document.getElementById("timer"));
             document.getElementById("verify-btn").addEventListener("click", function (e) {
                 e.preventDefault();
                 if (validateForm()) {
+                    setLoadingState(this);
                     verifyOTP();
                 }
             });
@@ -83,24 +119,26 @@
 
         function verifyOTP() {
             const otp = document.getElementById("otp").value.trim();
-            fetch('/verify-otp', {
+            const verifyBtn = document.getElementById("verify-btn");
+            fetch('/otp/verification', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
                 },
                 body: JSON.stringify({ otp }),
             })
-            .then(response => {
-                if (!response.ok) {
-                    return response.json().then(data => {
-                        document.getElementById("otp-error").textContent = data.message;
-                        throw new Error(data.message);
-                    });
-                }
-                return response.json();
-            })
-            .then(data => {
-                const Toast = Swal.mixin({
+                .then(response => {
+                    if (!response.ok) {
+                        return response.json().then(data => {
+                            document.getElementById("otp-error").textContent = data.message;
+                            clearLoadingState(verifyBtn)
+                            throw new Error(data.message);
+                        });
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    const Toast = Swal.mixin({
                         toast: true,
                         position: "top",
                         showConfirmButton: false,
@@ -119,18 +157,20 @@
                         window.location.href = "/login";
                     });
 
-            })
-            .catch((error) => {
-                console.error('Error:', error);
-            });
+                })
+                .catch((error) => {
+                    console.error('Error:', error);
+                    console.log("hello :",verifyBtn)
+                    clearLoadingState(verifyBtn);
+                });
         }
-   
+
 
         function resendOTP() {
             document.getElementById("resend-OTP").style.display = "none";
             startTimer(20, document.getElementById("timer"));
 
-            fetch('/resend-otp', {
+            fetch('/otp/resend', {
                 method: 'POST',
             })
                 .then(response => response.json())
@@ -151,13 +191,13 @@
             var isValid = true;
 
             if (otp === "") {
-                document.getElementById("otp-error").textContent = "OTP is required.";
+                document.getElementById("otp-error").textContent = "OTP is required";
                 isValid = false;
             } else if (!numericRegex.test(otp)) {
-                document.getElementById("otp-error").textContent = "OTP must be a number.";
+                document.getElementById("otp-error").textContent = "OTP must be a number";
                 isValid = false;
             } else if (otp.length !== 4) {
-                document.getElementById("otp-error").textContent = "OTP must be 4 digits.";
+                document.getElementById("otp-error").textContent = "OTP must be 4 digits";
                 isValid = false;
             } else {
                 document.getElementById("otp-error").textContent = "";

@@ -9,7 +9,7 @@ import dotenv from 'dotenv';
 
 dotenv.config();
 
-const { APP_EMAIL_ID, APP_PASSWORD } = process.env;
+const { APP_EMAIL_ID, APP_PASSWORD, BASE_URL } = process.env;
 
 
 const securePassword = async (password) => {
@@ -153,6 +153,9 @@ const sentResetLink = async (username, email, token) => {
             }
         });
 
+        const resetLink = `${BASE_URL}/password/reset?token=${token}`;
+        console.log("link :", resetLink)
+
         const mailOptions = {
             from: APP_EMAIL_ID,
             to: email,
@@ -163,7 +166,7 @@ const sentResetLink = async (username, email, token) => {
             <h5 style="text-align: center; font-size: 18px;">Hi ${username},</h5>
             <p style="text-align: center; font-size: 16px;">We have received a request to reset your password.If this wasn't initiated by you, please ignore this email.</p>
             <p style="text-align: center; font-size: 16px;">To reset your password, click the link below:</p>
-            <p style="text-align: center; font-size: 16px;"><a href='http://stepex.online/reset-password?token=${token}' style="color: #2ecc71; text-decoration: none;">Reset Your Password</a></p>
+            <p style="text-align: center; font-size: 16px;"><a href='${resetLink}' style="color: #2ecc71; text-decoration: none;">Reset Your Password</a></p>
             <p style="text-align: center; font-size: 16px;">This link will expire in 1 hour for security reasons.</p>
             <p style="text-align: center; font-size: 16px;">If you did not request a password reset or have any concerns, please contact our support team immediately.</p>
             <p style="text-align: center; font-size: 16px; margin: 20px 0;">Best regards,<br>StepEx</p>
@@ -174,7 +177,8 @@ const sentResetLink = async (username, email, token) => {
         await transporter.sendMail(mailOptions);
 
     } catch (error) {
-        console.log(error.message);
+        console.log("Email send error:", error.message);
+        throw error;
     }
 };
 
@@ -186,11 +190,11 @@ const generateVerificationToken = () => {
 const verifyResetPasswordEmail = async (req, res, next) => {
     try {
         const { email } = req.body;
-        console.log(email);
+        console.log("email :", email);
         const userData = await User.findOne({ email: email });
 
         if (!userData) {
-            return res.status(404).json({ message: 'User not found !' });
+            return res.status(404).json({ message: 'User not found' });
         }
 
         const token = generateVerificationToken();
@@ -200,7 +204,7 @@ const verifyResetPasswordEmail = async (req, res, next) => {
             { $set: { token: token } }
         );
 
-        sentResetLink(userData.name, userData.email, token);
+        await sentResetLink(userData.name, userData.email, token);
 
         res.status(200).json({ success: true });
 
@@ -352,7 +356,6 @@ const resendOTP = async (req, res, next) => {
         res.status(200).json({ message: 'OTP sent successfully' });
 
     } catch (error) {
-
         error.statusCode = 500;
         next(error);
     }
@@ -409,12 +412,12 @@ const verifyOTP = async (req, res, next) => {
 
             } else {
 
-                return res.status(404).json({ message: "Entered OTP is wrong.2" });
+                return res.status(404).json({ message: "Incorrect OTP" });
             }
 
         } else {
 
-            return res.status(404).json({ message: "Entered OTP is wrong." });
+            return res.status(404).json({ message: "Incorrect OTP" });
         }
 
     } catch (error) {

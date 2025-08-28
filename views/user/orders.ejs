@@ -87,13 +87,15 @@
                                             </li>
                                             <li
                                                 class="list-group-item d-flex justify-content-between align-items-center flex-wrap border-0">
-                                                <a href="/orders" class=" btn btn-primary py-2 px-4 mr-2 w-100 active rounded"
+                                                <a href="/orders"
+                                                    class=" btn btn-primary py-2 px-4 mr-2 w-100 active rounded"
                                                     style="font-size: 14px; font-weight: bold;"><span
                                                         class="icon-shopping_cart mx-1"></span><span>Orders</span></a>
                                             </li>
                                             <li
                                                 class="list-group-item d-flex justify-content-between align-items-center flex-wrap  border-0">
-                                                <a href="/address" class=" btn btn-primary   py-2 px-4 mr-2  w-100 rounded"
+                                                <a href="/address"
+                                                    class=" btn btn-primary   py-2 px-4 mr-2  w-100 rounded"
                                                     style="font-size: 14px; font-weight: bold;"><span
                                                         class="icon-home mx-1"></span><span>Addresses</span> </a>
                                             </li>
@@ -136,27 +138,31 @@
 
                                                 <div class="d-flex justify-content-between  mb-3">
                                                     <span class="mb-0">
-                                                        Order ID:<%=order.orderId%> <br>  Ordered on
+                                                        Order ID:<%=order.orderId%> <br> Ordered on
                                                             <%=order.date.toLocaleDateString('en-US',{day: 'numeric' ,
                                                                 month: 'short' , year: 'numeric' })%>
                                                     </span>
                                                     <span class="mb-0">
-                                                        Total : <br> 
+                                                        Total : <br>
                                                         ₹<%= order.totalAmount %>
                                                     </span>
 
                                                     <%if(order.payment_method==="Razorpay" &&
                                                         order.payment_status==="Pending" ){%>
-                                                        <span id="repayment-btn"
-                                                            class="btn btn-success font-weight-bold">Make
-                                                            Repayment</span>
+                                                        <span>
+                                                            <span id="repayment-btn"
+                                                                class="btn btn-success font-weight-bold">
+                                                                Make Repayment</span>
+                                                        </span>
+
                                                         <input id="order-id" type="hidden" value="<%=order.orderId%>">
                                                         <%}%>
-
-                                                            <a href="/order/order-details?id=<%=order.orderId%>"
-                                                                class="text-info py-0 px-4 ">
-                                                                <span>View Order Details</span>
-                                                            </a>
+                                                            <span>
+                                                                <a href="/order/order-details?id=<%=order.orderId%>"
+                                                                    class="text-info py-0 px-4 ">
+                                                                    View Order Details
+                                                                </a>
+                                                            </span>
 
                                                 </div>
                                                 <hr>
@@ -306,8 +312,9 @@
                                                                             src="\assets\images\no-orders.png" alt="">
                                                                     </div>
                                                                     <div class="d-flex justify-content-center ">
-                
-                                                                        <h6 style="font-weight: 600;">No orders made yet.
+
+                                                                        <h6 style="font-weight: 600;">No orders made
+                                                                            yet.
                                                                         </h6>
                                                                     </div>
                                                                 </div>

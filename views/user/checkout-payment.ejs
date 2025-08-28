@@ -52,7 +52,7 @@
 
         }
     </style>
-    
+
     <!---- breadcrumbs---->
     <div style="background-color: #f0f0f0; height: 60px; z-index: 1;" class="hero-wrap">
         <div class="container">
@@ -205,7 +205,8 @@
                                             </p>
                                             <p class="d-flex justify-content-between ">
                                                 <span>Discount (<%=req.session.discount%>%)</span>
-                                                <span>- ₹ <%= Math.round(totalAmount*(req.session.discount /100)) %></span>
+                                                <span>- ₹ <%= Math.round(totalAmount*(req.session.discount /100)) %>
+                                                </span>
                                             </p>
                                             <p class="d-flex">
                                                 <span>Delivery</span>
@@ -215,7 +216,8 @@
                                             <p class="d-flex total-price">
                                                 <span>Total</span>
                                                 <span class="total-amount">
-                                                    ₹<%=Math.round(totalAmount-(totalAmount*(req.session.discount /100))) %>
+                                                    ₹<%=Math.round(totalAmount-(totalAmount*(req.session.discount
+                                                        /100))) %>
                                                 </span>
                                             </p>
                                         </div>
@@ -273,11 +275,11 @@
                 removeSelection(razorPayOption);
                 showRazorPayNote(false);
                 showWalletBalance(false);
-                if(noCODMessage){
-                noCODMessage.style.display = 'block';
+                if (noCODMessage) {
+                    noCODMessage.style.display = 'block';
                 }
                 showNoBalance(false);
-                
+
             });
 
             razorPayOption.addEventListener('click', function () {
@@ -287,11 +289,11 @@
                 removeSelection(cashOnDeliveryOption);
                 showRazorPayNote(true);
                 showWalletBalance(false);
-                if(noCODMessage){
+                if (noCODMessage) {
                     noCODMessage.style.display = 'none';
                 }
                 showNoBalance(false);
-                
+
             });
 
             walletOption.addEventListener('click', function () {
@@ -301,12 +303,12 @@
                 removeSelection(razorPayOption);
                 showRazorPayNote(false);
                 showWalletBalance(true);
-                if(noCODMessage){
+                if (noCODMessage) {
                     noCODMessage.style.display = 'none';
                 }
-               
+
                 showNoBalance(true);
-                
+
             });
 
             function toggleSelection(element) {
@@ -360,7 +362,7 @@
                             title: 'No Cash On Delivery option for orders above ₹1000',
                             width: "550"
                         });
-                        return; 
+                        return;
                     }
 
                     Swal.fire({
@@ -419,19 +421,20 @@
 
                 if (razorPayOption.classList.contains('selected')) {
 
-                    fetch('/razorpay', {
+                    fetch('/razorpay/initiate', {
                         method: 'POST',
                         headers: {
                             'Content-Type': 'application/json'
                         }
                     })
-                        .then(response => {
-
-                            if (response.ok) {
-                                return response.json();
-                            } else {
-                                throw new Error('Failed to initiate payment1');
+                        .then(async (response) => {
+                            console.log("response:", response)
+                            const data = await response.json(); // always try to parse the JSON
+                            if (!response.ok) {
+                                // Handle server-side error (like 400)
+                                throw new Error(data.message || 'Something went wrong');
                             }
+                            return data; // success
                         })
                         .then(data => {
 
@@ -474,23 +477,50 @@
                                         });
                                 },
                                 prefill: {
-                                    name: 'John Doe', 
-                                    email: 'john@example.com', 
+                                    name: 'John Doe',
+                                    email: 'john@example.com',
                                     contact: '9876543210'
                                 },
                                 notes: {
-                                   
+
                                     'order_id': 'ORDERID12345'
                                 },
                                 theme: {
-                                    color: '#F37254' 
+                                    color: '#F37254'
+                                },
+                                modal: {
+                                    ondismiss: function () {
+                                        // This code will run when the modal is closed
+                                        console.log("Razorpay modal closed.");
+                                        fetch('/checkout/payment/unlock', {
+                                            method: 'POST',
+                                            headers: {
+                                                'Content-Type': 'application/json'
+                                            }
+                                        })
+                                        .then(response => response.json())
+                                        .then(data => {
+                                            console.log("data:", data)
+                                        })
+                                        .catch(error => {
+                                            console.error('Error:', error);
+                                        });
+                                    }
                                 }
                             };
+
                             var rzp = new Razorpay(options);
                             rzp.open();
+                            console.log("rzp:", rzp);
+
+                            // rzp.on('modal.close', function () {
+                            //     console.log("Modal was closed by the user");
+                            //     // Add your custom logic here, e.g., show a message to the user.
+                            // });
+
                             rzp.on('payment.failed', () => {
                                 setTimeout(() => {
-                                    rzp.close(); 
+                                    rzp.close();
                                     const paymentMethod = 'Razorpay';
                                     const paymentStatus = "Pending";
                                     const data = { paymentMethod: paymentMethod, paymentStatus: paymentStatus };
@@ -518,13 +548,16 @@
                                         });
                                 }, 3000);
                             });
+
                         })
                         .catch(error => {
-                            console.error('Error:', error);
-                            alert(error.message);
+                            console.log('Error:', error.message);
+
+                            Swal.fire({
+                                icon: 'warning',
+                                text: error.message
+                            });
                         });
-                } else {
-                    // console.error('Another payment method selected');
                 }
             });
         });
@@ -541,8 +574,6 @@
                 if (cashOnDeliveryOption.classList.contains('selected')) {
 
                     if (noBalance?.style?.display === 'block') {
-
-                        console.log("helloooooooooooo")
 
                         const Toast = Swal.mixin({
                             toast: true,
