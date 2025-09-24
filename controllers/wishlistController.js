@@ -56,7 +56,6 @@ const addToWishlist = async (req, res, next) => {
     }
 }
 
-
 const removeProductFromWishlist = async (req, res, next) => {
     try {
         const { productId } = req.body;
@@ -73,6 +72,7 @@ const removeProductFromWishlist = async (req, res, next) => {
         next(error);
     }
 }
+
 
 export {
     loadWishlist,

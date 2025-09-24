@@ -148,14 +148,15 @@
 									</div>
 									<hr>
 
-									<% if (address && address.address.length>0) { %>
+									<% if (totalCount && totalCount > 0) { %>
 										<div class="row">
-											<% address.address.forEach((address,index)=> { %>
+											<% const startIndex = (currentPage - 1) * limit; %>
+											<% addressList.forEach((address,index)=> { %>
 												<div class="col-lg-6 ">
 													<div class="card">
 														<div class="card-body">
 
-															<input type="radio" name="address" value="<%= index %>">
+															<input type="radio" name="address" value="<%= startIndex + index %>">
 
 															<p class="mb-0 ">
 																<%= address.name %>
@@ -175,9 +176,9 @@
 																<%= address.pincode %>
 															</p>
 															<hr>
-															<button class="btn btn-black btn-edit" data-toggle="modal"
+														<button class="btn btn-black btn-edit" data-toggle="modal"
 																data-target="#editAddressModal"
-																data-address-index="<%=index %>"
+															data-address-index="<%= startIndex + index %>"
 																data-address-name="<%= address.name %>"
 																data-address-street="<%= address.street_address %>"
 																data-address-place="<%= address.place %>"
@@ -196,6 +197,21 @@
 												<% }) %>
 
 										</div>
+										<div class="d-flex justify-content-center mt-3 w-100">
+											<nav aria-label="Address pagination">
+												<ul class="pagination">
+													<li class="page-item <%= currentPage === 1 ? 'disabled' : '' %>">
+														<a class="page-link" href="/checkout-details?page=<%= currentPage - 1 %>" tabindex="-1">Previous</a>
+													</li>
+													<% for (let p = 1; p <= totalPages; p++) { %>
+														<li class="page-item <%= p === currentPage ? 'active' : '' %>"><a class="page-link" href="/checkout-details?page=<%= p %>"><%= p %></a></li>
+													<% } %>
+													<li class="page-item <%= currentPage === totalPages ? 'disabled' : '' %>">
+														<a class="page-link" href="/checkout-details?page=<%= currentPage + 1 %>">Next</a>
+													</li>
+												</ul>
+											</nav>
+										</div>
 										<% } else { %>
 											<div>
 												<div class="d-flex justify-content-center ">
@@ -210,7 +226,7 @@
 											</div>
 											<% } %>
 
-												<% if (address && address.address.length>0) { %>
+												<% if (totalCount && totalCount > 0) { %>
 													<div class="d-flex justify-content-sm-start mt-3">
 														<button class="btn btn-info py-2 px-3 select-address rounded">
 															<span class="font-weight-bold">Use this address</span>

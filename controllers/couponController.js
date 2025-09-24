@@ -1,29 +1,24 @@
 import Coupons from "../models/couponModel.js";
 
 
-
 const loadCoupons = async (req, res, next) => {
     try {
         const couponData = await Coupons.find({});
         res.render("coupons", { coupons: couponData });
-
     } catch (error) {
         error.statusCode = 500;
         next(error);
     }
 }
-
 
 const loadAddCoupon = async (req, res, next) => {
     try {
         res.render("add-coupon");
-
     } catch (error) {
         error.statusCode = 500;
         next(error);
     }
 }
-
 
 const addCoupon = async (req, res, next) => {
     try {
@@ -53,7 +48,6 @@ const addCoupon = async (req, res, next) => {
     }
 }
 
-
 const loadEditCoupon = async (req, res, next) => {
     try {
         const couponId = req.query.id;
@@ -66,7 +60,6 @@ const loadEditCoupon = async (req, res, next) => {
         next(error);
     }
 }
-
 
 const editCoupon = async (req, res, next) => {
     try {
@@ -83,13 +76,11 @@ const editCoupon = async (req, res, next) => {
             );
             return res.status(200).json({ success: true, message: 'coupon updated successfully' });
         }
-
     } catch (error) {
         error.statusCode = 500;
         next(error);
     }
 }
-
 
 const activateCoupon = async (req, res, next) => {
     try {
@@ -110,7 +101,6 @@ const activateCoupon = async (req, res, next) => {
     }
 }
 
-
 const deactivateCoupon = async (req, res, next) => {
     try {
         console.log("deactivateCoupon");
@@ -130,14 +120,12 @@ const deactivateCoupon = async (req, res, next) => {
     }
 }
 
-
 const deleteCoupon = async (req, res, next) => {
     try {
         console.log("deleteCoupon");
         const couponId = req.query.id;
         await Coupons.deleteOne({ _id: couponId });
         res.status(200).json({ message: 'coupon deleted successfully' });
-
     } catch (error) {
         error.statusCode = 500;
         next(error);

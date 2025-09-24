@@ -18,11 +18,37 @@
                             <div class="col-lg-12 grid-margin stretch-card ">
                                 <div class="card">
                                     <div class="card-body">
+                                        <div class="row">
+                                            <div class="col-md-4 mb-2">
+                                                <input id="orders-search-input" type="text" class="form-control" name="q" placeholder="Search by order id, name or email" value="<%= typeof query !== 'undefined' ? query : '' %>">
+                                            </div>
+                                            <div class="col-md-3 mb-2">
+                                                <select id="orders-status-filter" class="form-control">
+                                                    <option value="" <%= !status ? 'selected' : '' %>>All Status</option>
+                                                    <option value="Pending" <%= status==='Pending' ? 'selected' : '' %>>Pending</option>
+                                                    <option value="Success" <%= status==='Success' ? 'selected' : '' %>>Success</option>
+                                                    <option value="Failed" <%= status==='Failed' ? 'selected' : '' %>>Failed</option>
+                                                </select>
+                                            </div>
+                                            <div class="col-md-3 mb-2">
+                                                <select id="orders-sort" class="form-control">
+                                                    <option value="date:desc" <%= (!sortBy || sortBy==='date') && (sortOrder!=='asc') ? 'selected' : '' %>>Newest</option>
+                                                    <option value="date:asc" <%= sortBy==='date' && sortOrder==='asc' ? 'selected' : '' %>>Oldest</option>
+                                                    <option value="totalAmount:desc" <%= sortBy==='totalAmount' && sortOrder!=='asc' ? 'selected' : '' %>>Total: High to Low</option>
+                                                    <option value="totalAmount:asc" <%= sortBy==='totalAmount' && sortOrder==='asc' ? 'selected' : '' %>>Total: Low to High</option>
+                                                    <option value="orderId:asc" <%= sortBy==='orderId' && sortOrder==='asc' ? 'selected' : '' %>>Order ID: A-Z</option>
+                                                    <option value="orderId:desc" <%= sortBy==='orderId' && sortOrder!=='asc' ? 'selected' : '' %>>Order ID: Z-A</option>
+                                                </select>
+                                            </div>
+                                            <div class="col-md-2 mb-2 d-flex">
+                                                <a href="?" class="btn btn-light">Clear</a>
+                                            </div>
+                                        </div>
 
-                                        <div class="d-flex justify-content-end "> 
+                                        <!-- <div class="d-flex justify-content-end "> 
                                             <a href="#"><button type="button" class="btn btn-danger btn-fw p-2 ">Return
                                                     requests</button></a>
-                                        </div>
+                                        </div> -->
           
                                         <table class="table table-striped mt-5  ">
                                             <thead class="text-center bg-secondary ">
@@ -38,86 +64,46 @@
                                                 </tr>
                                             </thead>
 
-                                            <% if (orders.length> 0) { %>
-                                                <% orders.forEach((order,index)=> { %>
-
-                                                    <tbody class="text-center ">
-                                                        <tr class="<%=(index+1) %2==0? 'bg-light' :'' %> ">
+                                            <tbody id="orders-tbody" class="text-center ">
+                                                <% if (orders.length> 0) { %>
+                                                    <% orders.forEach((order,index)=> { %>
+                                                        <tr>
+                                                            <td><%= index+1+(currentPage-1)*10 %>.</td>
+                                                            <td><%=order.orderId%></td>
+                                                            <td><%=order.user.name%></td>
+                                                            <td><%=order.user.email%></td>
+                                                            <td>₹<%=order.totalAmount%></td>
+                                                            <td><%=order.date.toLocaleDateString()%></td>
                                                             <td>
-                                                                <%= index+1+(currentPage-1)*10 %>.
-                                                            </td>
-
-                                                            <td>
-                                                                <%=order.orderId%>
-                                                            </td>
-
-                                                            <td>
-                                                                <%=order.user.name%>
-                                                            </td>
-
-                                                            <td>
-                                                                <%=order.user.email%>
-                                                            </td>
-
-                                                            <td>₹<%=order.totalAmount%>
-                                                            </td>
-
-                                                            <!-- <td>
-                                                                <span
-                                                                    class="badge <%= order.payment_status === 'Pending' ? 'badge-warning' : 
-                                                                                 order.payment_status === 'Success' ? 'badge-success' : 
-                                                                                 order.payment_status === 'Failed' ? 'badge-danger' : '' %> p-0">
-                                                                    <%= order.payment_status %>
-                                                                </span>
-                                                            </td> -->
-
-                                                            <td>
-                                                                <%=order.date.toLocaleDateString()%>
-                                                            </td>
-                                                            <td>
-                                                                <a href="/admin/orders/order-details?id=<%=order.orderId%>"
-                                                                    class="btn btn-success py-1 px-2"><span>Details</span></a>
+                                                                <a href="/admin/orders/order-details?id=<%=order.orderId%>" class="btn btn-success py-1 px-2"><span>Details</span></a>
                                                             </td>
                                                         </tr>
-                                                    </tbody>
                                                     <% }); %>
-
-                                                        <% } else { %>
-
-                                                            <tbody class="text-center">
-                                                                <tr>
-                                                                    <td colspan="7">No orders found !</td>
-                                                                </tr>
-                                                            </tbody>
-
-                                                            <% } %>
+                                                <% } else { %>
+                                                    <tr>
+                                                        <td colspan="7">No orders found !</td>
+                                                    </tr>
+                                                <% } %>
+                                            </tbody>
 
 
                                         </table>
 
-                                        <div class="pagination d-flex justify-content-start mt-5 ">
+                                        <div id="orders-pagination" class="pagination d-flex justify-content-start mt-5 ">
+                                            <% const qParam = (typeof query !== 'undefined' && query) ? `&q=${encodeURIComponent(query)}` : '' %>
                                             <% if (currentPage> 1) { %>
-                                                <a href="?page=1">&laquo;</a>
+                                                <a href="?page=1<%= qParam %>">&laquo;</a>
                                                 <% } %>
                                                     <% for (let i=1; i <=totalPages; i++) { %>
                                                         <% if (i==currentPage) { %>
-                                                            <span
-                                                                class="btn btn-primary pagination-btn px-3 py-2 mx-1 ">
-                                                                <%= i %>
-                                                            </span>
+                                                            <span class="btn btn-primary pagination-btn px-3 py-2 mx-1 "><%= i %></span>
                                                             <% } else { %>
-                                                                <span> <a href="?page=<%= i %>"
-                                                                        class="btn btn-secondary pagination-btn px-3 py-2 mx-1 ">
-
-                                                                        <%= i %>
-
-                                                                    </a></span>
+                                                                <span><a href="?page=<%= i %><%= qParam %>" class="btn btn-secondary pagination-btn px-3 py-2 mx-1 "><%= i %></a></span>
                                                                 <% } %>
-                                                                    <% } %>
-                                                                        <% if (currentPage < totalPages) { %>
-                                                                            <a
-                                                                                href="?page=<%= totalPages %>">&raquo;</a>
-                                                                            <% } %>
+                                                    <% } %>
+                                                    <% if (currentPage < totalPages) { %>
+                                                        <a href="?page=<%= totalPages %><%= qParam %>">&raquo;</a>
+                                                    <% } %>
                                         </div>
 
                                     </div>
@@ -129,4 +115,153 @@
             </div>
     </div>
 
+    <script>
+        function debounce(fn, delay) {
+            let timeoutId;
+            return function (...args) {
+                clearTimeout(timeoutId);
+                timeoutId = setTimeout(() => fn.apply(this, args), delay);
+            }
+        }
+
+        async function fetchOrders(params) {
+            const url = new URL(window.location.href);
+            Object.entries(params || {}).forEach(([key, val]) => {
+                if (val === null || val === undefined || val === '') {
+                    url.searchParams.delete(key);
+                } else {
+                    url.searchParams.set(key, String(val));
+                }
+            });
+            const res = await fetch(url.toString(), { headers: { 'Accept': 'application/json' } });
+            if (!res.ok) throw new Error('Failed to fetch orders');
+            return res.json();
+        }
+
+        function renderOrders(data) {
+            const tbody = document.getElementById('orders-tbody');
+            const pagination = document.getElementById('orders-pagination');
+            if (!tbody || !pagination) return;
+
+            const orders = Array.isArray(data.orders) ? data.orders : [];
+            if (orders.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="7">No orders found !</td></tr>';
+            } else {
+                tbody.innerHTML = orders.map((o, idx) => `
+                    <tr>
+                        <td>${idx + 1 + ((Number(data.currentPage||1)-1)*10)}.</td>
+                        <td>${o.orderId ?? ''}</td>
+                        <td>${(o.user && o.user.name) ? o.user.name : ''}</td>
+                        <td>${(o.user && o.user.email) ? o.user.email : ''}</td>
+                        <td>₹${o.totalAmount ?? ''}</td>
+                        <td>${o.date ? new Date(o.date).toLocaleDateString() : ''}</td>
+                        <td>
+                            <a href="/admin/orders/order-details?id=${o.orderId}" class="btn btn-success py-1 px-2"><span>Details</span></a>
+                        </td>
+                    </tr>
+                `).join('');
+            }
+
+            const totalPages = Number(data.totalPages || 1);
+            const currentPage = Number(data.currentPage || 1);
+            const q = data.query || '';
+            const qParam = q ? `&q=${encodeURIComponent(q)}` : '';
+            let html = '';
+            if (currentPage > 1) html += `<a href="?page=1${qParam}">&laquo;</a>`;
+            for (let i = 1; i <= totalPages; i++) {
+                if (i === currentPage) html += `<span class="btn btn-primary pagination-btn px-3 py-2 mx-1 ">${i}</span>`;
+                else html += `<span><a href="?page=${i}${qParam}" class="btn btn-secondary pagination-btn px-3 py-2 mx-1 ">${i}</a></span>`;
+            }
+            if (currentPage < totalPages) html += `<a href="?page=${totalPages}${qParam}">&raquo;</a>`;
+            pagination.innerHTML = html;
+
+            pagination.querySelectorAll('a').forEach(a => {
+                a.addEventListener('click', function (e) {
+                    e.preventDefault();
+                    const url = new URL(a.href);
+                    const nextPage = url.searchParams.get('page') || '1';
+                    const q = url.searchParams.get('q') || '';
+                    fetchOrders({ page: nextPage, q }).then(data => {
+                        renderOrders(data);
+                        const current = new URL(window.location.href);
+                        current.searchParams.set('page', nextPage);
+                        if (q) current.searchParams.set('q', q); else current.searchParams.delete('q');
+                        window.history.replaceState({}, '', current.toString());
+                    }).catch(console.error);
+                });
+            });
+        }
+
+        function updateUrlState(params) {
+            const url = new URL(window.location.href);
+            Object.entries(params || {}).forEach(([key, val]) => {
+                if (val === null || val === undefined || val === '') {
+                    url.searchParams.delete(key);
+                } else {
+                    url.searchParams.set(key, String(val));
+                }
+            });
+            window.history.replaceState({}, '', url.toString());
+        }
+
+        const handleOrdersSearch = debounce(function (event) {
+            const value = (event.target.value || '').trim();
+            const status = document.getElementById('orders-status-filter')?.value || '';
+            const sortVal = document.getElementById('orders-sort')?.value || 'date:desc';
+            const [sortBy, sortOrder] = sortVal.split(':');
+            fetchOrders({ page: 1, q: value, status, sortBy, sortOrder }).then(data => {
+                renderOrders(data);
+                updateUrlState({ page: 1, q: value, status, sortBy, sortOrder });
+            }).catch(console.error);
+        }, 400);
+
+        function handleOrdersStatusChange() {
+            const q = (document.getElementById('orders-search-input')?.value || '').trim();
+            const status = document.getElementById('orders-status-filter')?.value || '';
+            const sortVal = document.getElementById('orders-sort')?.value || 'date:desc';
+            const [sortBy, sortOrder] = sortVal.split(':');
+            fetchOrders({ page: 1, q, status, sortBy, sortOrder }).then(data => {
+                renderOrders(data);
+                updateUrlState({ page: 1, q, status, sortBy, sortOrder });
+            }).catch(console.error);
+        }
+
+        function handleOrdersSortChange() {
+            const q = (document.getElementById('orders-search-input')?.value || '').trim();
+            const status = document.getElementById('orders-status-filter')?.value || '';
+            const sortVal = document.getElementById('orders-sort')?.value || 'date:desc';
+            const [sortBy, sortOrder] = sortVal.split(':');
+            fetchOrders({ page: 1, q, status, sortBy, sortOrder }).then(data => {
+                renderOrders(data);
+                updateUrlState({ page: 1, q, status, sortBy, sortOrder });
+            }).catch(console.error);
+        }
+
+        document.addEventListener('DOMContentLoaded', function () {
+            const input = document.getElementById('orders-search-input');
+            if (input) input.addEventListener('input', handleOrdersSearch);
+            const statusSelect = document.getElementById('orders-status-filter');
+            if (statusSelect) statusSelect.addEventListener('change', handleOrdersStatusChange);
+            const sortSelect = document.getElementById('orders-sort');
+            if (sortSelect) sortSelect.addEventListener('change', handleOrdersSortChange);
+            const pagination = document.getElementById('orders-pagination');
+            if (pagination) {
+                pagination.querySelectorAll('a').forEach(a => {
+                    a.addEventListener('click', function (e) {
+                        e.preventDefault();
+                        const url = new URL(a.href);
+                        const nextPage = url.searchParams.get('page') || '1';
+                        const q = url.searchParams.get('q') || '';
+                        const status = url.searchParams.get('status') || '';
+                        const sortBy = url.searchParams.get('sortBy') || 'date';
+                        const sortOrder = url.searchParams.get('sortOrder') || 'desc';
+                        fetchOrders({ page: nextPage, q, status, sortBy, sortOrder }).then(data => {
+                            renderOrders(data);
+                            updateUrlState({ page: nextPage, q, status, sortBy, sortOrder });
+                        }).catch(console.error);
+                    });
+                });
+            }
+        });
+    </script>
     <%- include('../admin_layouts/footer.ejs') %>

@@ -36,6 +36,14 @@
               <div class="col-lg-12 grid-margin stretch-card ">
                 <div class="card">
                   <div class="card-body">
+                    <div class="row">
+                      <div class="col-md-6 mb-3">
+                        <input id="product-search-input" type="text" class="form-control" name="q" placeholder="Search by name, brand or gender" value="<%= typeof query !== 'undefined' ? query : '' %>">
+                      </div>
+                      <div class="col-md-6 mb-3 d-flex">
+                        <a href="?" class="btn btn-light">Clear</a>
+                      </div>
+                    </div>
 
                     <div class="d-flex justify-content-end">
                       <a href="/admin/products/add-product"><button type="button"
@@ -59,10 +67,10 @@
                           <th class="font-weight-bold"> Action </th>
                         </tr>
                       </thead>
-                      <% if(products.length> 0) { %>
-                        <% products.forEach((product,index)=>{%>
-                          <tbody class="text-center ">
-                            <tr class="<%=(index+1) %2==0? 'bg-light' :'' %> ">
+                      <tbody id="products-tbody" class="text-center ">
+                        <% if(products.length> 0) { %>
+                          <% products.forEach((product,index)=>{%>
+                            <tr>
                               <!-- <td class="py-4">
                             <%= index+1+(currentPage-1)*5 %>.
 
@@ -92,22 +100,19 @@
                                   class="btn btn-danger btn-sm py-1 px-2 ">Delete</span></button>
                               </td>
                             </tr>
-                          </tbody>
                           <%})%>
-                            <% } else { %>
-
-                              <tbody class="text-center">
-                                <tr>
-                                  <td colspan="7">No products found !</td>
-                                </tr>
-                              </tbody>
-
-                              <% } %>
+                        <% } else { %>
+                          <tr>
+                            <td colspan="7">No products found !</td>
+                          </tr>
+                        <% } %>
+                      </tbody>
                     </table>
 
-                    <div class="pagination d-flex justify-content-start mt-5 ">
+                    <div id="products-pagination" class="pagination d-flex justify-content-start mt-5 ">
+                      <% const qParam = (typeof query !== 'undefined' && query) ? `&q=${encodeURIComponent(query)}` : '' %>
                       <% if (currentPage> 1) { %>
-                        <a href="?page=1">&laquo;</a>
+                        <a href="?page=1<%= qParam %>">&laquo;</a>
                         <% } %>
                           <% for (let i=1; i <=totalPages; i++) { %>
                             <% if (i==currentPage) { %>
@@ -115,7 +120,7 @@
                                 <%= i %>
                               </span>
                               <% } else { %>
-                                <span> <a href="?page=<%= i %>" class="btn btn-secondary pagination-btn px-3 py-2 ">
+                                <span> <a href="?page=<%= i %><%= qParam %>" class="btn btn-secondary pagination-btn px-3 py-2 ">
 
                                     <%= i %>
 
@@ -123,7 +128,7 @@
                                 <% } %>
                                   <% } %>
                                     <% if (currentPage < totalPages) { %>
-                                      <a href="?page=<%= totalPages %>">&raquo;</a>
+                                      <a href="?page=<%= totalPages %><%= qParam %>">&raquo;</a>
                                       <% } %>
                     </div>
 
@@ -136,6 +141,116 @@
   </div>
 
   <script>
+    function debounce(fn, delay) {
+      let timeoutId;
+      return function (...args) {
+        clearTimeout(timeoutId);
+        timeoutId = setTimeout(() => fn.apply(this, args), delay);
+      }
+    }
+
+    async function fetchProducts(params) {
+      const url = new URL(window.location.href);
+      Object.entries(params || {}).forEach(([key, val]) => {
+        if (val === null || val === undefined || val === '') {
+          url.searchParams.delete(key);
+        } else {
+          url.searchParams.set(key, String(val));
+        }
+      });
+      const res = await fetch(url.toString(), { headers: { 'Accept': 'application/json' } });
+      if (!res.ok) throw new Error('Failed to fetch products');
+      return res.json();
+    }
+
+    function renderProducts(data) {
+      const tbody = document.getElementById('products-tbody');
+      const pagination = document.getElementById('products-pagination');
+      if (!tbody || !pagination) return;
+
+      const products = Array.isArray(data.products) ? data.products : [];
+      if (products.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="7">No products found !</td></tr>';
+      } else {
+        tbody.innerHTML = products.map((p, idx) => `
+          <tr>
+            <td><img src="/uploads/productImages/${(p.images && p.images[0]) || ''}" alt="img" /></td>
+            <td>${p.name ?? ''}</td>
+            <td>${p.price ?? ''}</td>
+            <td>${(p.gender ?? '')} / ${(p.category && p.category.name) ? p.category.name : ''}</td>
+            <td>${p.quantity ?? ''}</td>
+            <td>${p.createdAt ? new Date(p.createdAt).toLocaleDateString() : ''}</td>
+            <td>
+              <a href="/admin/products/edit-product?id=${p._id}" class="btn btn-info btn-sm py-1 px-2 "><span>Edit</span></a>
+              <button onclick="unlistProduct('${p._id}')" class="btn btn-danger btn-sm py-1 px-2 ">Delete</button>
+            </td>
+          </tr>
+        `).join('');
+      }
+
+      const totalPages = Number(data.totalPages || 1);
+      const currentPage = Number(data.currentPage || 1);
+      const q = data.query || '';
+      const qParam = q ? `&q=${encodeURIComponent(q)}` : '';
+      let html = '';
+      if (currentPage > 1) html += `<a href="?page=1${qParam}">&laquo;</a>`;
+      for (let i = 1; i <= totalPages; i++) {
+        if (i === currentPage) html += `<span class="btn btn-primary pagination-btn px-3 py-2 ">${i}</span>`;
+        else html += `<span><a href="?page=${i}${qParam}" class="btn btn-secondary pagination-btn px-3 py-2 ">${i}</a></span>`;
+      }
+      if (currentPage < totalPages) html += `<a href="?page=${totalPages}${qParam}">&raquo;</a>`;
+      pagination.innerHTML = html;
+
+      pagination.querySelectorAll('a').forEach(a => {
+        a.addEventListener('click', function (e) {
+          e.preventDefault();
+          const url = new URL(a.href);
+          const nextPage = url.searchParams.get('page') || '1';
+          const q = url.searchParams.get('q') || '';
+          fetchProducts({ page: nextPage, q }).then(data => {
+            renderProducts(data);
+            const current = new URL(window.location.href);
+            current.searchParams.set('page', nextPage);
+            if (q) current.searchParams.set('q', q); else current.searchParams.delete('q');
+            window.history.replaceState({}, '', current.toString());
+          }).catch(console.error);
+        });
+      });
+    }
+
+    const handleProductSearch = debounce(function (event) {
+      const value = (event.target.value || '').trim();
+      fetchProducts({ page: 1, q: value }).then(data => {
+        renderProducts(data);
+        const url = new URL(window.location.href);
+        url.searchParams.set('page', '1');
+        if (value) url.searchParams.set('q', value); else url.searchParams.delete('q');
+        window.history.replaceState({}, '', url.toString());
+      }).catch(console.error);
+    }, 400);
+
+    document.addEventListener('DOMContentLoaded', function () {
+      const input = document.getElementById('product-search-input');
+      if (input) input.addEventListener('input', handleProductSearch);
+      const pagination = document.getElementById('products-pagination');
+      if (pagination) {
+        pagination.querySelectorAll('a').forEach(a => {
+          a.addEventListener('click', function (e) {
+            e.preventDefault();
+            const url = new URL(a.href);
+            const nextPage = url.searchParams.get('page') || '1';
+            const q = url.searchParams.get('q') || '';
+            fetchProducts({ page: nextPage, q }).then(data => {
+              renderProducts(data);
+              const current = new URL(window.location.href);
+              current.searchParams.set('page', nextPage);
+              if (q) current.searchParams.set('q', q); else current.searchParams.delete('q');
+              window.history.replaceState({}, '', current.toString());
+            }).catch(console.error);
+          });
+        });
+      }
+    });
 
     async function unlistProduct(productId) {
       try {

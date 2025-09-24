@@ -2,9 +2,8 @@ import Order from "../models/orderModel.js";
 
 const loadSales = async (req, res,next) => {
     try {
-
         let { reportType, startDate, endDate } = req.query;
-        console.log(req.query)
+        console.log("req.query :")
 
         const reportTypes = ["All", "Today", "Last Week", "Last Month", "This Year", "Custom Date Range"];
         let currentType = reportType;
@@ -48,7 +47,6 @@ const loadSales = async (req, res,next) => {
             // Adjust end date to include the entire selected day
             endDate.setHours(23, 59, 59, 999);
         }
-
 
         let salesData;
 
@@ -99,7 +97,6 @@ const loadSales = async (req, res,next) => {
         next(error);
     }
 }
-
 
 export {
     loadSales,

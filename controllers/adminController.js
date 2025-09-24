@@ -14,7 +14,6 @@ const securePassword = async (password) => {
     }
 }
 
-
 const loadLogin = async (req, res, next) => {
     try {
         res.render("login")
@@ -23,7 +22,6 @@ const loadLogin = async (req, res, next) => {
         next(error);
     }
 }
-
 
 const loadDashboard = async (req, res, next) => {
     try {
@@ -192,7 +190,6 @@ const loadDashboard = async (req, res, next) => {
     }
 };
 
-
 const verfyLogin = async (req, res, next) => {
     try {
         const email = req.body.email;
@@ -217,25 +214,41 @@ const verfyLogin = async (req, res, next) => {
     }
 }
 
-
 const loadUsers = async (req, res, next) => {
     try {
-        const page = req.query.page || 1;
+        const page = parseInt(req.query.page || 1, 10);
+        const query = (req.query.q || "").trim();
         const limit = 10;
         const skip = (page - 1) * limit;
-        const users = await User.find({}).skip(skip).limit(limit);
-        const totalUsers = await User.countDocuments({});
 
-        const totalPages = Math.ceil(totalUsers / limit);
+        const filter = query
+            ? {
+                $or: [
+                    { name: { $regex: query, $options: "i" } },
+                    { email: { $regex: query, $options: "i" } },
+                ],
+            }
+            : {};
 
-        res.render("users", { users, totalPages, currentPage: page });
+        const [users, totalUsers] = await Promise.all([
+            User.find(filter).skip(skip).limit(limit),
+            User.countDocuments(filter),
+        ]);
+
+        const totalPages = Math.ceil(totalUsers / limit) || 1;
+
+        const wantsJson = req.xhr || (req.headers.accept && req.headers.accept.includes("application/json"));
+        if (wantsJson) {
+            return res.json({ users, totalPages, currentPage: page, query });
+        }
+
+        res.render("users", { users, totalPages, currentPage: page, query });
 
     } catch (error) {
         error.statusCode = 500;
         next(error);
     }
 };
-
 
 const blockUser = async (req, res, next) => {
     try {
@@ -245,14 +258,16 @@ const blockUser = async (req, res, next) => {
             { _id: id },
             { $set: { is_block: 1 } }
         );
-
+        const wantsJson = req.xhr || (req.headers.accept && req.headers.accept.includes("application/json"));
+        if (wantsJson) {
+            return res.json({ ok: true, userId: id, is_block: 1 });
+        }
         res.redirect("/admin/user-management");
     } catch (error) {
         error.statusCode = 500;
         next(error);
     }
 }
-
 
 const unBlockUser = async (req, res, next) => {
     try {
@@ -263,6 +278,10 @@ const unBlockUser = async (req, res, next) => {
             { _id: id },
             { $set: { is_block: 0 } }
         );
+        const wantsJson = req.xhr || (req.headers.accept && req.headers.accept.includes("application/json"));
+        if (wantsJson) {
+            return res.json({ ok: true, userId: id, is_block: 0 });
+        }
         res.redirect("/admin/user-management");
     } catch (error) {
         error.statusCode = 500;
@@ -270,18 +289,15 @@ const unBlockUser = async (req, res, next) => {
     }
 }
 
-
 const logout = async (req, res, next) => {
     try {
         delete req.session.admin_id;
         res.redirect("/admin");
-
     } catch (error) {
         error.statusCode = 500;
         next(error);
     }
 }
-
 
 
 export {

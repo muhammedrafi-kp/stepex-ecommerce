@@ -138,10 +138,10 @@
                                             </button>
                                         </div>
                                         <hr>
-                                        <% if (address && address.address.length>0) { %>
+                                        <% if (totalCount && totalCount > 0) { %>
                                             <div class="row">
-
-                                                <% address.address.forEach((address,index)=> { %>
+                                                <% const startIndex = (currentPage - 1) * limit; %>
+                                                <% addressList.forEach((item,index)=> { %>
                                                     <div class="col-lg-6">
                                                         <div class="card">
                                                             <div class="card-body">
@@ -149,44 +149,59 @@
                                                                 <hr>
                                                                 <!-- Content for the first address -->
                                                                 <p class="mb-0 ">
-                                                                    <%= address.name %>
+                                                                    <%= item.name %>
                                                                 </p>
                                                                 <p class="mb-0">
-                                                                    <%= address.street_address %>
+                                                                    <%= item.street_address %>
                                                                 </p>
                                                                 <p class="mb-0">
-                                                                    <%= address.place %>
+                                                                    <%= item.place %>
                                                                 </p>
                                                                 <p class="mb-0">
-                                                                    <%= address.city %>,<%= address.state %>
+                                                                    <%= item.city %>,<%= item.state %>
                                                                 </p>
-                                                                <p class="mb-0">Mobile:<%= address.mobile %>
+                                                                <p class="mb-0">Mobile:<%= item.mobile %>
                                                                 </p>
                                                                 <p class="mb-0">
-                                                                    <%= address.pincode %>
+                                                                    <%= item.pincode %>
                                                                 </p>
                                                                 <hr>
                                                                 <button class="btn btn-black btn-edit rounded"
                                                                     data-toggle="modal" data-target="#editAddressModal"
-                                                                    data-address-index="<%=index %>"
-                                                                    data-address-name="<%= address.name %>"
-                                                                    data-address-street="<%= address.street_address %>"
-                                                                    data-address-place="<%= address.place %>"
-                                                                    data-address-city="<%= address.city %>"
-                                                                    data-address-state="<%= address.state %>"
-                                                                    data-address-mobile="<%= address.mobile %>"
-                                                                    data-address-pincode="<%= address.pincode %>">
+                                                                    data-address-index="<%= startIndex + index %>"
+                                                                    data-address-name="<%= item.name %>"
+                                                                    data-address-street="<%= item.street_address %>"
+                                                                    data-address-place="<%= item.place %>"
+                                                                    data-address-city="<%= item.city %>"
+                                                                    data-address-state="<%= item.state %>"
+                                                                    data-address-mobile="<%= item.mobile %>"
+                                                                    data-address-pincode="<%= item.pincode %>">
                                                                     Edit
                                                                 </button>
 
                                                                 <button class="btn btn-danger px-3 rounded"
-                                                                    onclick="removeAddress('<%=index%>')">Remove</button>
+                                                                    onclick="removeAddress('<%= startIndex + index %>')">Remove</button>
 
                                                             </div>
                                                         </div>
                                                     </div>
                                                     <% }) %>
 
+                                            </div>
+                                            <div class="d-flex justify-content-center mt-3">
+                                                <nav aria-label="Address pagination">
+                                                    <ul class="pagination">
+                                                        <li class="page-item <%= currentPage === 1 ? 'disabled' : '' %>">
+                                                            <a class="page-link" href="/address?page=<%= currentPage - 1 %>" tabindex="-1">Previous</a>
+                                                        </li>
+                                                        <% for (let p = 1; p <= totalPages; p++) { %>
+                                                            <li class="page-item <%= p === currentPage ? 'active' : '' %>"><a class="page-link" href="/address?page=<%= p %>"><%= p %></a></li>
+                                                        <% } %>
+                                                        <li class="page-item <%= currentPage === totalPages ? 'disabled' : '' %>">
+                                                            <a class="page-link" href="/address?page=<%= currentPage + 1 %>">Next</a>
+                                                        </li>
+                                                    </ul>
+                                                </nav>
                                             </div>
                                             <% } else { %>
 

@@ -1,3 +1,4 @@
+import mongoose from "mongoose";
 import User from "../models/userModel.js";
 import Cart from "../models/cartModel.js";
 import Wallet from "../models/walletModel.js";
@@ -13,22 +14,20 @@ const razorpay = new Razorpay({
     key_secret: RAZORPAY_SECRET_KEY
 });
 
+
 const loadWallet = async (req, res, next) => {
     try {
-
         const userId = req.session._id;
         const userData = await User.findOne({ _id: userId });
         const cart = await Cart.findOne({ user_id: userId }).populate('items.products');
         const cartItemCount = cart ? cart.items.length : 0;
         const walletData = await Wallet.findOne({ user_id: userId });
         res.render("wallet", { user: userData, cartCount: cartItemCount, wallet: walletData });
-
     } catch (error) {
         error.statusCode = 500;
         next(error);
     }
 }
-
 
 const loadAddMoney = async (req, res, next) => {
     try {
@@ -38,13 +37,11 @@ const loadAddMoney = async (req, res, next) => {
         const cartItemCount = cart ? cart.items.length : 0;
         const walletData = await Wallet.findOne({ user_id: userId });
         res.render("wallet-add-money", { user: userData, cartCount: cartItemCount, wallet: walletData, razorpaykey: RAZORPAY_ID_KEY });
-
     } catch (error) {
         error.statusCode = 500;
         next(error);
     }
 }
-
 
 const generatereceiptID = () => {
     const min = 10000000;
@@ -73,13 +70,15 @@ const createRazorPayforAddMoney = async (req, res, next) => {
 };
 
 const addMoney = async (req, res, next) => {
+    const session = await mongoose.startSession();
+    session.startTransaction();
     try {
         const { amount } = req.body;
         const userId = req.session._id;
-        let wallet = await Wallet.findOne({ user_id: userId });
-        console.log(userId)
-        if (!wallet) {
 
+        let wallet = await Wallet.findOne({ user_id: userId }).session(session);
+
+        if (!wallet) {
             wallet = new Wallet({
                 user_id: userId,
                 balance: 0,
@@ -94,23 +93,29 @@ const addMoney = async (req, res, next) => {
         const transaction = {
             amount: parseFloat(amount),
             transaction_type: 'credit',
-            previous_balance: previousBalance
+            previous_balance: previousBalance,
+            new_balance: updatedBalance,
+            created_at: new Date()
         };
 
         wallet.history.push(transaction);
 
-        await wallet.save();
+        await wallet.save({ session });
+
+        await session.commitTransaction();
+
         res.status(200).json({ success: true });
 
     } catch (error) {
+        await session.abortTransaction();
         error.statusCode = 500;
         next(error);
+    } finally {
+        session.endSession();
     }
 }
 
-
 const loadWithdrawMoney = async (req, res, next) => {
-
     try {
         const userId = req.session._id;
         const userData = await User.findOne({ _id: userId });
@@ -125,26 +130,29 @@ const loadWithdrawMoney = async (req, res, next) => {
     }
 }
 
-
 const WithdrawMoney = async (req, res, next) => {
-
+    const session = await mongoose.startSession();
+    session.startTransaction();
     try {
         const userId = req.session._id;
 
         const { amount } = req.body;
 
         if (!amount || amount <= 0) {
-            return res.status(400).json({ message: 'Invalid amount.' });
+            await session.abortTransaction();
+            return res.status(400).json({ message: 'Invalid amount' });
         }
 
-        const wallet = await Wallet.findOne({ user_id: userId });
+        let wallet = await Wallet.findOne({ user_id: userId }).session(session);
 
         if (!wallet) {
-            return res.status(404).json({ message: 'Insufficient balance.' });
+            await session.abortTransaction();
+            return res.status(404).json({ message: 'Wallet not found' });
         }
 
         if (wallet.balance < amount) {
-            return res.status(400).json({ message: 'Insufficient balance.' });
+            await session.abortTransaction();
+            return res.status(400).json({ message: 'Insufficient balance' });
         }
 
         const previousBalance = wallet.balance;
@@ -154,20 +162,27 @@ const WithdrawMoney = async (req, res, next) => {
         const transaction = {
             amount: parseFloat(amount),
             transaction_type: 'debit',
-            previous_balance: previousBalance
+            previous_balance: previousBalance,
+            new_balance: updatedBalance,
+            created_at: new Date()
         };
+
 
         wallet.history.push(transaction);
 
-        await wallet.save();
-        return res.status(200).json({ message: 'Withdrawal successful.' });
+        await wallet.save({ session });
 
+        await session.commitTransaction();
+        
+        return res.status(200).json({ message: 'Withdrawal successful.' });
     } catch (error) {
+        await session.abortTransaction();
         error.statusCode = 500;
         next(error);
+    } finally {
+        session.endSession();
     }
 };
-
 
 const loadWalletHistory = async (req, res, next) => {
     try {

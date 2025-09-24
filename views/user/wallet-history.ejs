@@ -148,63 +148,128 @@
                                             </div>
                                         </div>
                                         <hr>
-                                        <% if(wallet&&wallet.history.length>0){%>
-                                            <%wallet.history.reverse().forEach((transaction)=>{%>
-                                                <div class="d-flex justify-content-between   ">
-                                                    <div class="col-8">
-                                                        <div class="row">
-                                                            <div class="col-lg-12">
-                                                                <span style="color: #000; font-weight: 600;">
-                                                                    <%=transaction.transaction_type%>
-                                                                </span>
-                                                            </div>
-                                                        </div>
-                                                        <div class="row">
-                                                            <div class="col-lg-12">
-                                                                <span><%=transaction.date.toLocaleString('en-US',
-                                                                        {day: 'numeric' , month: 'short' ,
-                                                                        year: 'numeric' , hour: 'numeric' ,
-                                                                        minute: 'numeric' , hour12: true});%>
-                                                                        %></span>
-                                                            </div>
-                                                        </div>
-                                                    </div>
-                                                    <%if(transaction.transaction_type=="debit" ){%>
+                                        <div id="transactions-container"></div>
+                                        <ul class="pagination justify-content-center" id="wallet-pagination"></ul>
+                                        <script type="application/json" id="wallet-history-json"><%- JSON.stringify(wallet && wallet.history ? wallet.history : []) %></script>
+                                        <script>
+                                            (function () {
+                                                var historyJsonEl = document.getElementById('wallet-history-json');
+                                                var history;
+                                                try {
+                                                    history = JSON.parse(historyJsonEl ? historyJsonEl.textContent : '[]') || [];
+                                                } catch (e) {
+                                                    history = [];
+                                                }
+                                                var container = document.getElementById('transactions-container');
+                                                var paginationEl = document.getElementById('wallet-pagination');
+                                                var pageSize = 5;
+                                                var currentPage = 1;
 
-                                                        <div class="row">
-                                                            <div class="col-lg-12">
-                                                                <span style="color: #ff0000; font-weight: 600;">
-                                                                    -<%=transaction.amount%>
-                                                                </span>
-                                                            </div>
-                                                        </div>
-                                                        
-                                                        <%}else{%>
-                                                            <div class="row">
-                                                                <div class="col-lg-12">
-                                                                    <span style="color: green; font-weight: 600;">
-                                                                        +<%=transaction.amount%></span>
-                                                                </div>
-                                                            </div>
+                                                function formatDate(dateStr) {
+                                                    var d = new Date(dateStr);
+                                                    return d.toLocaleString('en-US', {
+                                                        day: 'numeric',
+                                                        month: 'short',
+                                                        year: 'numeric',
+                                                        hour: 'numeric',
+                                                        minute: 'numeric',
+                                                        hour12: true
+                                                    });
+                                                }
 
-                                                            <%}%>
-                                                </div>
+                                                function renderEmpty() {
+                                                    container.innerHTML = '' +
+                                                        '<div>' +
+                                                        '  <div class="d-flex justify-content-center ">' +
+                                                        '    <img width="60" height="60" src="\\assets\\images\\no-transactions.png" alt="">' +
+                                                        '  </div>' +
+                                                        '  <div class="d-flex justify-content-center ">' +
+                                                        '    <h6 style="font-weight: 600;">No transactions made yet.</h6>' +
+                                                        '  </div>' +
+                                                        '</div>';
+                                                    paginationEl.innerHTML = '';
+                                                }
 
-                                                <hr>
-                                                <%})%>
-                                                    <%}else{%>
-                                                        <div>
-                                                            <div class="d-flex justify-content-center ">
-                                                                <img width="60" height="60"
-                                                                    src="\assets\images\no-transactions.png" alt="">
-                                                            </div>
-                                                            <div class="d-flex justify-content-center ">
+                                                function renderPagination(totalPages) {
+                                                    if (totalPages <= 1) {
+                                                        paginationEl.innerHTML = '';
+                                                        return;
+                                                    }
+                                                    var html = '';
+                                                    if (currentPage > 1) {
+                                                        html += '<li class="page-item"><a class="page-link" href="#" data-page="' + (currentPage - 1) + '">Previous</a></li>';
+                                                    }
+                                                    for (var i = 1; i <= totalPages; i++) {
+                                                        html += '<li class="page-item ' + (i === currentPage ? 'active' : '') + '"><a class="page-link" href="#" data-page="' + i + '">' + i + '</a></li>';
+                                                    }
+                                                    if (currentPage < totalPages) {
+                                                        html += '<li class="page-item"><a class="page-link" href="#" data-page="' + (currentPage + 1) + '">Next</a></li>';
+                                                    }
+                                                    paginationEl.innerHTML = html;
+                                                    Array.prototype.forEach.call(paginationEl.querySelectorAll('a[data-page]'), function (a) {
+                                                        a.addEventListener('click', function (e) {
+                                                            e.preventDefault();
+                                                            var p = parseInt(this.getAttribute('data-page'), 10);
+                                                            if (!isNaN(p)) {
+                                                                renderPage(p);
+                                                            }
+                                                        });
+                                                    });
+                                                }
 
-                                                                <h6 style="font-weight: 600;">No transactions made yet.
-                                                                </h6>
-                                                            </div>
-                                                        </div>
-                                                        <%}%>
+                                                function renderPage(page) {
+                                                    currentPage = page;
+                                                    if (!history || history.length === 0) {
+                                                        renderEmpty();
+                                                        return;
+                                                    }
+                                                    // Sort by date desc without mutating original order
+                                                    var sorted = history.slice().sort(function (a, b) {
+                                                        return new Date(b.date) - new Date(a.date);
+                                                    });
+                                                    var total = sorted.length;
+                                                    var totalPages = Math.ceil(total / pageSize);
+                                                    if (currentPage < 1) currentPage = 1;
+                                                    if (currentPage > totalPages) currentPage = totalPages;
+                                                    var start = (currentPage - 1) * pageSize;
+                                                    var end = start + pageSize;
+                                                    var pageItems = sorted.slice(start, end);
+
+                                                    var html = '';
+                                                    pageItems.forEach(function (transaction) {
+                                                        var isDebit = String(transaction.transaction_type).toLowerCase() === 'debit';
+                                                        html += '' +
+                                                            '<div class="d-flex justify-content-between">' +
+                                                            '  <div class="col-8">' +
+                                                            '    <div class="row">' +
+                                                            '      <div class="col-lg-12">' +
+                                                            '        <span style="color: #000; font-weight: 600;">' + (transaction.transaction_type || '') + '</span>' +
+                                                            '      </div>' +
+                                                            '    </div>' +
+                                                            '    <div class="row">' +
+                                                            '      <div class="col-lg-12">' +
+                                                            '        <span>' + formatDate(transaction.date) + '</span>' +
+                                                            '      </div>' +
+                                                            '    </div>' +
+                                                            '  </div>' +
+                                                            '  <div class="row">' +
+                                                            '    <div class="col-lg-12">' +
+                                                            '      <span style="' + (isDebit ? 'color: #ff0000;' : 'color: green;') + ' font-weight: 600;">' +
+                                                            (isDebit ? '-' : '+') + (transaction.amount || 0) +
+                                                            '      </span>' +
+                                                            '    </div>' +
+                                                            '  </div>' +
+                                                            '</div>' +
+                                                            '<hr>';
+                                                    });
+
+                                                    container.innerHTML = html;
+                                                    renderPagination(totalPages);
+                                                }
+
+                                                renderPage(1);
+                                            })();
+                                        </script>
                                     </div>
                                 </div>
                             </div>

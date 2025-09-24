@@ -18,7 +18,6 @@ const loadShop = async (req, res, next) => {
         const limit = 6;
         const skip = (page - 1) * limit;
 
-
         // Query parameters
         const searchQuery = req.query.search || '';
         const categoryFilter = req.query.category ? req.query.category.split(',') : [];
@@ -75,7 +74,6 @@ const loadShop = async (req, res, next) => {
     }
 };
 
-
 const loadSingleProduct = async (req, res, next) => {
     try {
         const userId = req.session._id;
@@ -110,7 +108,6 @@ const loadSingleProduct = async (req, res, next) => {
         next(error);
     }
 }
-
 
 export {
     loadSingleProduct,

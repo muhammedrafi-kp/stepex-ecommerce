@@ -1,6 +1,8 @@
+import mongoose from "mongoose";
 import User from "../models/userModel.js";
 import OTP from "../models/otpModel.js";
 import Products from "../models/productsModel.js";
+import Wallet from "../models/walletModel.js";
 import Cart from "../models/cartModel.js";
 import Coupons from "../models/couponModel.js";
 import bcrypt from "bcrypt";
@@ -11,7 +13,6 @@ dotenv.config();
 
 const { APP_EMAIL_ID, APP_PASSWORD, BASE_URL } = process.env;
 
-
 const securePassword = async (password) => {
     try {
         const passwordHash = bcrypt.hash(password, 10);
@@ -20,7 +21,6 @@ const securePassword = async (password) => {
         console.log(error.message);
     }
 }
-
 
 const loadhome = async (req, res, next) => {
     try {
@@ -64,17 +64,14 @@ const loadhome = async (req, res, next) => {
     }
 }
 
-
 const loadLogin = async (req, res, next) => {
     try {
         res.render("login");
-
     } catch (error) {
         error.statusCode = 500;
         next(error);
     }
 }
-
 
 const loadRegister = async (req, res, next) => {
     try {
@@ -83,25 +80,20 @@ const loadRegister = async (req, res, next) => {
         console.log("referral_code:", req.session.referral_code);
         console.log(referralCode);
         res.render('register');
-
     } catch (error) {
         error.statusCode = 500;
         next(error);
     }
 }
 
-
 const verfyLogin = async (req, res, next) => {
     try {
-
         const { email, password } = req.body;
         const userData = await User.findOne({ email: email });
-        const users = await User.find({})
-        console.log(users);
 
         if (!userData) {
             console.log('User not found !');
-            return res.status(404).json({ message: "Email or Password is incorrect." });
+            return res.status(404).json({ message: "User not found" });
         }
 
         if (userData.is_block) {
@@ -111,24 +103,22 @@ const verfyLogin = async (req, res, next) => {
 
         if (userData) {
             const passwordMatch = await bcrypt.compare(password, userData.password);
-            console.log("hello");
 
             if (passwordMatch) {
+                console.log("password matched");
                 req.session._id = userData._id;
                 res.status(200).json({ success: true });
 
             } else {
+                console.log("Incorrect Password.");
                 res.status(400).json({ success: false, message: "Incorrect Password." });
             }
-
         }
-
     } catch (error) {
         error.statusCode = 500;
         next(error);
     }
 }
-
 
 const loadResetPasswordLink = async (req, res, next) => {
     try {
@@ -140,7 +130,6 @@ const loadResetPasswordLink = async (req, res, next) => {
 }
 
 const sentResetLink = async (username, email, token) => {
-
     try {
         let transporter = nodemailer.createTransport({
             service: "gmail",
@@ -182,7 +171,6 @@ const sentResetLink = async (username, email, token) => {
     }
 };
 
-
 const generateVerificationToken = () => {
     return Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
 };
@@ -214,40 +202,35 @@ const verifyResetPasswordEmail = async (req, res, next) => {
     }
 };
 
-
 const loadResetPassword = async (req, res, next) => {
-
     try {
         const { token } = req.query;
         console.log(token);
         const userData = await User.findOne({ token: token });
         console.log(userData);
         res.render("reset-password", { userId: userData._id });
-
     } catch (error) {
         error.statusCode = 500;
         next(error);
     }
 }
 
-
 const resetPassword = async (req, res, next) => {
-
     try {
         const { userId, newPassword } = req.body;
+
         console.log(newPassword, userId);
 
         const password = await securePassword(newPassword);
+
         await User.findByIdAndUpdate({ _id: userId }, { $set: { password: password } });
 
         res.status(200).json({ success: true, message: "Your Password has been updated successfully!" })
-
     } catch (error) {
         console.log(error.message);
         next(error);
     }
 }
-
 
 const generateOTP = () => {
     return Math.floor(1000 + Math.random() * 9000);
@@ -255,17 +238,13 @@ const generateOTP = () => {
 
 const sendOTP = async (req, res, next) => {
     try {
-
         const { email } = req.body;
 
-        const existingUserWithEmail = await User.findOne({ email: email });
+        const existingUser = await User.findOne({ email: email });
 
-        if (existingUserWithEmail) {
-
+        if (existingUser) {
             res.render("register", { email: req.body.email, name: req.body.name, mobile: req.body.mno, message: "User with the same email address already exists" });
-
         } else {
-
             const Otp = generateOTP();
             console.log("Otp:", Otp)
 
@@ -281,7 +260,7 @@ const sendOTP = async (req, res, next) => {
                 OTP: Otp
             });
 
-            const otpData = await otp.save()
+            await otp.save()
 
             let transporter = nodemailer.createTransport({
                 host: 'smtp.gmail.com',
@@ -318,12 +297,10 @@ const sendOTP = async (req, res, next) => {
     }
 };
 
-
 const resendOTP = async (req, res, next) => {
-
     try {
         const Otp = generateOTP();
-        console.log(Otp);
+        console.log("otp: ", Otp);
 
         await OTP.findOneAndUpdate(
             { email: req.session.email },
@@ -342,7 +319,6 @@ const resendOTP = async (req, res, next) => {
             }
         });
 
-
         let mailOptions = {
             from: '"Rafi" <rafikp@gmail.com>',
             to: req.session.email,
@@ -354,91 +330,92 @@ const resendOTP = async (req, res, next) => {
         await transporter.sendMail(mailOptions);
 
         res.status(200).json({ message: 'OTP sent successfully' });
-
     } catch (error) {
         error.statusCode = 500;
         next(error);
     }
 }
-
 
 const loadVerifyOTP = async (req, res, next) => {
     try {
         res.render("verify-otp");
-
     } catch (error) {
         error.statusCode = 500;
         next(error);
     }
 }
-
 
 const generateReferral = () => {
     return Math.random().toString(36).substring(2, 15);
 }
 
 const verifyOTP = async (req, res, next) => {
+    const session = await mongoose.startSession();
+    session.startTransaction();
+
     try {
         const { otp } = req.body;
         const { email } = req.session;
 
-        const otpData = await OTP.findOne({ email: email, OTP: otp });
+        const otpData = await OTP.findOne({ email: email, OTP: otp }).session(session);
         const referralCode = generateReferral();
-
-        if (otpData) {
-
-            if (otpData.OTP == otp) {
-
-                const user = new User({
-                    name: req.session.name,
-                    email: req.session.email,
-                    mobile: req.session.mobile,
-                    password: req.session.password,
-                    referral_code: referralCode,
-                    referred_code: req.session.referral_code,
-                    is_block: 0
-                });
-                await user.save();
-                delete req.session.name;
-                delete req.session.email;
-                delete req.session.mobile;
-                delete req.session.password;
-
-                console.log("OTP is correct");
-
-                res.status(201).json({ message: "Registration successful..!" });
-
-                console.log("OTP is correct 2");
-
-            } else {
-
-                return res.status(404).json({ message: "Incorrect OTP" });
-            }
-
-        } else {
-
+        console.log("entered otp :", otp);
+        if (!otpData || otpData.OTP !== Number(otp)) {
+            console.log("here is the problem")
+            await session.abortTransaction();
             return res.status(404).json({ message: "Incorrect OTP" });
         }
 
+        const user = new User({
+            name: req.session.name,
+            email: req.session.email,
+            mobile: req.session.mobile,
+            password: req.session.password,
+            referral_code: referralCode,
+            referred_code: req.session.referral_code,
+            is_block: 0
+        });
+
+        await user.save({ session });
+
+        delete req.session.name;
+        delete req.session.email;
+        delete req.session.mobile;
+        delete req.session.password;
+
+        console.log("✅ OTP is correct");
+        console.log("new user:", user);
+
+        const wallet = new Wallet({
+            user_id: user._id,
+            balance: 0,
+            history: []
+        });
+
+        await wallet.save({ session });
+        console.log("wallet:", wallet);
+
+        await session.commitTransaction();
+        res.status(201).json({ message: "Registration successful" });
+
     } catch (error) {
+        await session.abortTransaction();
         error.statusCode = 500;
         next(error);
+    } finally {
+        session.endSession();
     }
 };
 
-
 const logout = async (req, res, next) => {
-
     try {
         delete req.session._id;
         res.redirect("/");
-
     } catch (error) {
         error.statusCode = 500;
         next(error);
     }
 }
-
 
 const loadProfile = async (req, res, next) => {
     try {
@@ -449,26 +426,23 @@ const loadProfile = async (req, res, next) => {
         const cartItemCount = cart ? cart.items.length : 0;
 
         res.render("userProfile", { user: userData, cartCount: cartItemCount });
-
     } catch (error) {
         error.statusCode = 500;
         next(error);
     }
 }
 
-
 const editUser = async (req, res, next) => {
     try {
         const userId = req.session._id;
         const { name, mobile } = req.body;
-        console.log(name, "edit");
 
         await User.findByIdAndUpdate(
             { _id: userId },
             { $set: { name: name, mobile: mobile } }
         )
 
-        res.status(200).json({ message: 'User information updated successfully.' });
+        res.status(200).json({ message: 'User updated successfully' });
 
     } catch (error) {
         error.statusCode = 500;
@@ -476,9 +450,7 @@ const editUser = async (req, res, next) => {
     }
 };
 
-
 const changePassword = async (req, res, next) => {
-
     try {
         const { currentPassword, newPassword } = req.body;
         const userId = req.session._id;
@@ -487,10 +459,9 @@ const changePassword = async (req, res, next) => {
         const passwordMatch = await bcrypt.compare(currentPassword, userData.password);
 
         if (passwordMatch) {
-
             const password = await securePassword(newPassword);
             await User.findByIdAndUpdate({ _id: userId }, { $set: { password: password } });
-            res.status(200).json({ message: "Your Password has been updated successfully!" })
+            res.status(200).json({ message: "Your Password has been updated" })
         } else {
             res.status(400).json({ message: "Invalid Password" });
         }
@@ -500,7 +471,6 @@ const changePassword = async (req, res, next) => {
         next(error);
     }
 };
-
 
 const loadCoupons = async (req, res, next) => {
     try {

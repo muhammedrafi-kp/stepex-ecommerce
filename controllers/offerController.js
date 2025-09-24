@@ -14,7 +14,6 @@ const loadCategoryOffers = async (req, res,next) => {
     }
 }
 
-
 const loadAddCategoryOffer = async (req, res,next) => {
     try {
         const categoryData = await Category.find({})
@@ -24,7 +23,6 @@ const loadAddCategoryOffer = async (req, res,next) => {
         next(error);
     }
 }
-
 
 const addCategoryOffer = async (req, res,next) => {
     try {
@@ -49,7 +47,6 @@ const addCategoryOffer = async (req, res,next) => {
             console.log('Offer added successfully');
             return res.status(201).json({ success: true, message: 'Offer added successfully' });
         }
-
     } catch (error) {
         error.statusCode = 500;
         next(error);
@@ -71,7 +68,6 @@ const loadEditCategoryOffer = async (req, res,next) => {
     }
 }
 
-
 const editCategoryOffer = async (req, res,next) => {
     try {
         console.log("hello");
@@ -86,7 +82,6 @@ const editCategoryOffer = async (req, res,next) => {
             return res.status(409).json({ success: false, message: 'Offer with this category already exists' });
 
         } else {
-
             await CategoryOffer.findOneAndUpdate(
                 { _id: id },
                 { $set: { category: categoryId, offer: offer, validity: validity } },
@@ -94,13 +89,11 @@ const editCategoryOffer = async (req, res,next) => {
             );
             return res.status(200).json({ success: true, message: 'Offer updated successfully' });
         }
-
     } catch (error) {
         error.statusCode = 500;
         next(error);
     }
 }
-
 
 const deleteCategoryOffer = async (req, res,next) => {
     try {
@@ -116,30 +109,25 @@ const deleteCategoryOffer = async (req, res,next) => {
     }
 }
 
-
 const loadProductOffers = async (req, res,next) => {
     try {
         const productOffersdata = await ProductOffer.find({}).populate("product");
         res.render("offers-product", { productOffer: productOffersdata });
-
     } catch (error) {
         error.statusCode = 500;
         next(error);
     }
 }
-
 
 const loadAddProductOffer = async (req, res,next) => {
     try {
         const productData = await Products.find({ is_delete: 0 });
         res.render("add-offer-product", { products: productData });
-
     } catch (error) {
         error.statusCode = 500;
         next(error);
     }
 }
-
 
 const addProductOffer = async (req, res,next) => {
     try {
@@ -167,7 +155,6 @@ const addProductOffer = async (req, res,next) => {
     }
 }
 
-
 const loadEditProductOffer = async (req, res,next) => {
     try {
         const productId = req.query.id;
@@ -176,16 +163,13 @@ const loadEditProductOffer = async (req, res,next) => {
         const productOfferData = await ProductOffer.findOne({ product: productId }).populate('product');
         console.log("productOfferData:", productOfferData)
         res.render("edit-offer-product", { products: productData, productOffer: productOfferData });
-
     } catch (error) {
         error.statusCode = 500;
         next(error);
     }
 }
 
-
 const editProductOffer = async (req, res,next) => {
-
     try {
         console.log(req.body);
         const { id, product, offer, offerPrice, validity } = req.body;
@@ -198,7 +182,6 @@ const editProductOffer = async (req, res,next) => {
             return res.status(409).json({ success: false, message: 'Offer with this product already exists' });
 
         } else {
-            
             await ProductOffer.findOneAndUpdate(
                 { _id: id },
                 { $set: { product: productId, offer: offer, offer_price: offerPrice, validity } },
@@ -213,20 +196,17 @@ const editProductOffer = async (req, res,next) => {
     }
 }
 
-
 const deleteProductOffer = async (req, res,next) => {
     try {
         const id = req.query.id;
         console.log("id", id);
         await ProductOffer.deleteOne({ _id: id });
         res.status(200).json({ message: 'Offer deleted successfully' });
-
     } catch (error) {
         error.statusCode = 500;
         next(error);
     }
 }
-
 
 
 export {

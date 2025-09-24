@@ -11,20 +11,31 @@ const loadAddress = async (req, res, next) => {
         const cart = await Cart.findOne({ user_id: userId }).populate('items.products');
         const cartItemCount = cart ? cart.items.length : 0;
 
-        // const page = parseInt(req.query.page) || 1;
-        // const limit = 4;
-        // const skip = (page - 1) * limit;
-        // const totalCount = await Address.countDocuments({ user_id: userData });
-        // const totalPages = Math.ceil(totalCount / limit);
-        // console.log(address);
+        // pagination
+        const limit = 4;
+        const requestedPage = parseInt(req.query.page) || 1;
+        const totalCount = address && Array.isArray(address.address) ? address.address.length : 0;
+        const totalPages = Math.max(1, Math.ceil(totalCount / limit));
+        const currentPage = Math.min(Math.max(requestedPage, 1), totalPages);
+        const skip = (currentPage - 1) * limit;
+        const addressList = address && Array.isArray(address.address)
+            ? address.address.slice(skip, skip + limit)
+            : [];
 
-        res.render("address", { user: userData, address: address, cartCount: cartItemCount });
+        res.render("address", {
+            user: userData,
+            addressList: addressList,
+            cartCount: cartItemCount,
+            currentPage: currentPage,
+            totalPages: totalPages,
+            limit: limit,
+            totalCount: totalCount
+        });
     } catch (error) {
         error.statusCode = 500;
         next(error);
     }
 }
-
 
 const addAddress = async (req, res, next) => {
     try {
@@ -73,13 +84,13 @@ const addAddress = async (req, res, next) => {
     }
 }
 
-
 const removeAddress = async (req, res, next) => {
     try {
         const index = req.query.index;
-        // console.log("index:", index);
+        console.log("index:", index);
         const userId = req.session._id;
         const address = await Address.findOne({ user_id: userId });
+
         if (!address) {
             return res.status(404).json({ message: "User not found" });
         }
@@ -93,7 +104,6 @@ const removeAddress = async (req, res, next) => {
         next(error);
     }
 };
-
 
 const editAddress = async (req, res, next) => {
     try {
@@ -126,7 +136,6 @@ const editAddress = async (req, res, next) => {
         next(error);
     }
 };
-
 
 export {
     loadAddress,

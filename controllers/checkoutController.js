@@ -1,3 +1,4 @@
+import mongoose from "mongoose";
 import User from "../models/userModel.js";
 import Cart from "../models/cartModel.js";
 import Address from "../models/addressModel.js";
@@ -6,7 +7,7 @@ import Order from "../models/orderModel.js";
 import Wallet from "../models/walletModel.js";
 import Coupon from "../models/couponModel.js";
 import Razorpay from "razorpay";
-
+import { TRANSACTION_TYPES, REFERRAL_REWARD } from "../constants/wallet.js"
 
 const { RAZORPAY_ID_KEY, RAZORPAY_SECRET_KEY } = process.env;
 
@@ -51,7 +52,6 @@ const proceedToCheckout = async (req, res, next) => {
 
 
 const loadCheckout = async (req, res, next) => {
-
     try {
         console.log("key_id:", razorpay.key_id);
         const userId = req.session._id;
@@ -62,9 +62,8 @@ const loadCheckout = async (req, res, next) => {
         const cartItemCount = cartData ? cartData.items.length : 0;
 
         let totalAmount = 0;
-        if (cartData.items.length > 0) {
+        if (cartData?.items.length > 0) {
             for (const item of cartData.items) {
-
                 totalAmount += item.products.offer_price * item.quantity;
             }
         }
@@ -75,13 +74,35 @@ const loadCheckout = async (req, res, next) => {
             is_active: true
         });
 
+        // pagination for addresses
+        const limit = 4;
+        const requestedPage = parseInt(req.query.page) || 1;
+        const totalCount = address && Array.isArray(address.address) ? address.address.length : 0;
+        const totalPages = Math.max(1, Math.ceil(totalCount / limit));
+        const currentPage = Math.min(Math.max(requestedPage, 1), totalPages);
+        const skip = (currentPage - 1) * limit;
+        const addressList = address && Array.isArray(address.address)
+            ? address.address.slice(skip, skip + limit)
+            : [];
+
         if (cartData.items.length > 0) {
-            res.render("checkout-details", { user: userData, address: address, cart: cartData, coupons: validCoupons, totalAmount, cartCount: cartItemCount, req });
+            res.render("checkout-details", {
+                user: userData,
+                addressList: addressList,
+                totalCount: totalCount,
+                currentPage: currentPage,
+                totalPages: totalPages,
+                limit: limit,
+                cart: cartData,
+                coupons: validCoupons,
+                totalAmount,
+                cartCount: cartItemCount,
+                req
+            });
 
         } else {
             res.redirect("/shop");
         }
-
 
     } catch (error) {
         error.statusCode = 500;
@@ -97,6 +118,7 @@ const applyCoupon = async (req, res, next) => {
         const coupon = await Coupon.findOne({ coupon_code: couponCode });
         req.session.discount = coupon.discount;
         console.log("discount:", req.session.discount);
+
         res.status(200).json({ success: true });
 
     } catch (error) {
@@ -109,7 +131,6 @@ const removeCoupon = async (req, res, next) => {
     try {
         delete req.session.discount;
         res.status(200).json({ success: true });
-
     } catch (error) {
         error.statusCode = 500;
         next(error);
@@ -125,7 +146,8 @@ const selectAddressForCheckout = async (req, res, next) => {
 
         let outOfStockProducts = [];
         let maxStockExceed = [];
-        if (cartData) {
+
+        if (cartData || cartData.items) {
             for (const item of cartData.items) {
                 console.log(item.quantity)
                 const product = item.products;
@@ -153,7 +175,6 @@ const selectAddressForCheckout = async (req, res, next) => {
 
 
 const loadPayment = async (req, res, next) => {
-
     try {
 
         if (!req.session.addressIndex) {
@@ -193,246 +214,141 @@ const loadPayment = async (req, res, next) => {
 }
 
 
-const generateOrderID = () => {
-    const min = 10000000;
-    const max = 99999999;
-    return Math.floor(Math.random() * (max - min + 1) + min);
-}
 
 const confirmOrder = async (req, res, next) => {
+    const session = await mongoose.startSession();
+    session.startTransaction();
     try {
-        const { paymentMethod, paymentStatus } = req.body;
+
         const userId = req.session._id;
-        const addressIndex = req.session.addressIndex;
+        const { paymentMethod, paymentStatus } = req.body;
 
-        const addressData = await Address.findOne({ user_id: userId });
-        const orderId = generateOrderID();
-        const cartData = await Cart.findOne({ user_id: userId }).populate('items.products');
+        if (paymentMethod === "Wallet"||paymentMethod === "COD") {
 
-        const orders = await Order.findOne({ user: userId });
-        let flag = 0;
-
-        if (!orders) {
-            flag = 1;
-        }
-        console.log("flag", flag)
-
-        let outOfStockProducts = [];
-        let maxStockExceed = [];
-
-        if (cartData) {
-            for (const item of cartData.items) {
-                console.log(item.quantity)
-                const product = item.products;
-
-                if (product.quantity <= 0) {
-                    outOfStockProducts.push(product.name);
-
-                } else if (product.quantity < item.quantity) {
-                    maxStockExceed.push(product.name);
-                }
+            if (!handlePaymentLock(req)) {
+                return res.status(400).json({
+                    success: false,
+                    message: "Payment already in progress. Please wait for the previous payment to complete."
+                });
             }
         }
 
-        if (outOfStockProducts.length > 0) {
-            res.status(400).json({ message: 'Few items are unavailable for checkout.Please remove them before continue.' });
-        } else if (maxStockExceed.length > 0) {
-            res.status(400).json({ message: 'Few items are exceed maximum quantity.Please reduce the quantity before continue.' });
-        } else {
+        const { valid, outOfStock, maxExceed, cartData } = await validateCart(userId, session);
 
-            let totalAmount = 0;
-            let discount = 0;
-            const items = [];
+        if (!valid) {
+            let message = "";
 
-            for (const item of cartData.items) {
-                const product = await Product.findById(item.products);
-
-                let status = '';
-                if (paymentMethod === "Razorpay" && paymentStatus === "Pending") {
-                    status = "Pending";
-                } else {
-                    status = "Confirmed";
-                }
-
-                const itemDetails = {
-                    product_id: item.products,
-                    name: product.name,
-                    price: product.offer_price,
-                    category: product.category,
-                    gender: product.gender,
-                    brand: product.brand,
-                    imageUrl: product.images[0],
-                    quantity: item.quantity,
-                    status: status
-                }
-
-                items.push(itemDetails);
-                totalAmount += product.offer_price * item.quantity;
-                product.quantity -= item.quantity;
-                await product.save();
+            if(!cartData||cartData.items.length === 0){
+                return res.status(409).json({
+                    success: false,
+                    message: "Your cart is empty!"
+                });
             }
 
-            totalAmount = req.session.discount ? Math.round(totalAmount - (totalAmount * (req.session.discount / 100))) : totalAmount;
-            discount = req.session.discount ? Math.round(totalAmount * (req.session.discount / 100)) : Math.round(discount);
+            if (outOfStock.length > 0) {
+                message += `The following items are out of stock: ${outOfStock.join(", ")}. `;
+            }
 
-            await Cart.findOneAndUpdate({ user_id: userId }, { items: [] });
+            if (maxExceed.length > 0) {
+                message += `The following items exceed available stock: ${maxExceed.join(", ")}.`;
+            }
 
-            const newOrder = new Order({
-                user: userId,
-                orderId: orderId,
-                totalAmount: totalAmount,
-                discount: discount,
-                items: items,
-                address: addressData.address[addressIndex],
-                payment_method: paymentMethod,
-                payment_status: paymentStatus
+            return res.status(400).json({
+                success: false,
+                message: message.trim(),
+                outOfStock,
+                maxExceed
             });
-
-            await newOrder.save();
-            delete req.session.discount;
-
-            //for wallet history
-            if (paymentMethod === "Wallet") {
-
-                const wallet = await Wallet.findOne({ user_id: userId });
-                const amount = totalAmount;
-                const previousBalance = wallet.balance;
-                const updatedBalance = previousBalance - amount;
-                wallet.balance = updatedBalance;
-
-                const transaction = {
-                    amount: parseFloat(amount),
-                    transaction_type: 'debit',
-                    previous_balance: previousBalance
-                };
-
-                wallet.history.push(transaction);
-
-                await wallet.save();
-            }
-
-            //referral cashback for refferal person
-            if (flag === 1) {
-
-                const userData = await User.findOne({ _id: userId });
-                console.log("referredCode:", userData);
-                const refferedUserData = await User.findOne({ referral_code: userData.referred_code });
-                console.log("refferedUserId:", refferedUserData);
-
-                const wallet = await Wallet.findOne({ user_id: refferedUserData._id });
-                console.log("wallet:", wallet);
-
-                const amount = 100;
-                const previousBalance = wallet.balance;
-                const updatedBalance = previousBalance + amount;
-                wallet.balance = updatedBalance;
-
-                const transaction = {
-                    amount: parseFloat(amount),
-                    transaction_type: 'Referral cashback',
-                    previous_balance: previousBalance
-                };
-
-                wallet.history.push(transaction);
-
-                await wallet.save();
-            }
-
-            //referral cashback for reffered person
-            if (flag === 1) {
-                let wallet = await Wallet.findOne({ user_id: userId });
-                console.log(userId)
-                if (!wallet) {
-
-                    wallet = new Wallet({
-                        user_id: userId,
-                        balance: 0,
-                        history: []
-                    });
-                }
-
-                const amount = 25;
-                const previousBalance = wallet.balance;
-                const updatedBalance = previousBalance + amount;
-                wallet.balance = updatedBalance;
-
-                const transaction = {
-                    amount: parseFloat(amount),
-                    transaction_type: 'Referal cashback',
-                    previous_balance: previousBalance
-                };
-
-                wallet.history.push(transaction);
-
-                await wallet.save();
-            }
-            if (req.session.paymentLock) {
-                delete req.session.paymentLock;
-            }
-            res.status(200).json({ success: true });
         }
 
-        console.log("paymentMethod : ", paymentMethod);
+        const { items, totalAmount, discount } = await calculateCartTotals(
+            cartData,
+            req.session.discount,
+            paymentMethod,
+            paymentStatus,
+            session
+        );
+
+        await createOrder(userId, items, totalAmount, discount, req.session.addressIndex, paymentMethod, paymentStatus, session);
+
+        let walletBalance;
+        //Wallet debit if Wallet payment
+        if (paymentMethod === "Wallet") {
+            walletBalance = await updateWallet(userId, -totalAmount, "debit", session);
+        }
+
+        console.log("updated wallet balance:", walletBalance)
+
+        //Referral bonus (only for first order)
+        const existingOrders = await Order.findOne({ user: userId }).session(session);
+        if (!existingOrders) {
+            await applyReferralBonus(userId, session);
+        }
+
+        // Commit transaction
+        await session.commitTransaction();
+
+        delete req.session.discount;
+        delete req.session.paymentLock;
+
+        res.status(200).json({ success: true });
     } catch (error) {
+        await session.abortTransaction();
         error.statusCode = 500;
         next(error);
+    } finally {
+        session.endSession();
     }
-}
-
-
-const generatereceiptID = () => {
-    const min = 10000000;
-    const max = 99999999;
-    return Math.floor(Math.random() * (max - min + 1) + min);
 }
 
 const createRazorPay = async (req, res, next) => {
     try {
-        console.log("paymentLock:", req.session.paymentLock);
-        if (req.session.paymentLock) {
-            let { expireAt } = req.session.paymentLock;
-            const now = new Date();
-            expireAt = new Date(expireAt);
-
-            if (now < expireAt) {
-                return res.status(400).json({ success: false, message: 'Payment already in progress. Please wait for the previous payment to complete.' });
-            }
-            console.log("Previous payment lock expired, allowing new order");
-            delete req.session.paymentLock;
-        }
-
-        console.log(razorpay.key_id, razorpay.key_secret);
         const userId = req.session._id;
-        const cartData = await Cart.findOne({ user_id: userId }).populate('items.products');
-        let totalAmount = 0;
 
-        if (cartData) {
-            for (const item of cartData.items) {
-                totalAmount += item.products.price * item.quantity;
-            }
+        // Prevent simultaneous payments
+        if (!handlePaymentLock(req)) {
+            return res.status(400).json({
+                success: false,
+                message: "Payment already in progress. Please wait for the previous payment to complete."
+            });
         }
 
-
-        if (req.session.discount) {
-            totalAmount -= (totalAmount * (req.session.discount / 100));
-            totalAmount = Math.round(totalAmount);
+        //Fetch user cart
+        const cartData = await Cart.findOne({ user_id: userId }).populate("items.products");
+        if (!cartData || cartData.items.length === 0) {
+            return res.status(409).json({ message: "Your cart is empty!" });
         }
 
-        const receiptID = generatereceiptID();
+        const { outOfStock, maxExceed } = validateStock(cartData);
+        if (outOfStock.length > 0) {
+            return res.status(400).json({ message: `Out of stock: ${outOfStock.join(", ")}` });
+        }
+        if (maxExceed.length > 0) {
+            return res.status(400).json({ message: `Exceeds stock: ${maxExceed.join(", ")}` });
+        }
 
+        // Calculate total
+        let totalAmount = calculateTotal(cartData, req.session.discount);
+
+        // Create Razorpay order
         const razorpayOrder = await razorpay.orders.create({
-            amount: totalAmount * 100,
-            currency: 'INR',
-            receipt: `${receiptID}`,
+            amount: totalAmount * 100, // paise
+            currency: "INR",
+            receipt: generateReceiptID(),
             payment_capture: 1
         });
 
+        // Save payment lock to session
         req.session.paymentLock = {
             orderId: razorpayOrder.id,
-            expireAt: new Date(Date.now() + 5 * 60 * 1000)
-        }
+            expireAt: new Date(Date.now() + 1 * 60 * 1000)
+        };
 
-        res.status(200).json({ success: true, order: razorpayOrder });
+        req.session.save(err => {
+            if (err) console.error("Session save error:", err);
+            res.status(200).json({ success: true, order: razorpayOrder });
+        });
+
     } catch (error) {
         error.statusCode = 500;
         next(error);
@@ -456,13 +372,207 @@ const loadOrderPlaced = async (req, res, next) => {
         const userData = await User.findOne({ _id: userId });
         const cartData = await Cart.findOne({ user_id: userId }).populate('items.products');
         const cartItemCount = cartData ? cartData.items.length : 0;
-        res.render("order-placed", { user: userData, cartCount: cartItemCount, status });
 
+        res.render("order-placed", { user: userData, cartCount: cartItemCount, status });
     } catch (error) {
         error.statusCode = 500;
         next(error);
     }
 }
+
+
+/* ----------- Helpers ---------- */
+
+
+// For create razopay order
+function handlePaymentLock(req) {
+    const lock = req.session.paymentLock;
+    if (!lock) return true;
+
+    const now = new Date();
+    const expireAt = new Date(lock.expireAt);
+
+    if (now < expireAt) {
+        return false;
+    }
+
+    delete req.session.paymentLock;
+    return true;
+}
+
+function validateStock(cartData) {
+    const outOfStock = [];
+    const maxExceed = [];
+
+    for (const item of cartData.items) {
+        const product = item.products;
+        if (!product) continue;
+
+        if (product.quantity <= 0) {
+            outOfStock.push(product.name);
+        } else if (product.quantity < item.quantity) {
+            maxExceed.push(product.name);
+        }
+    }
+
+    return { outOfStock, maxExceed };
+}
+
+function calculateTotal(cartData, discount = 0) {
+    let total = 0;
+    for (const item of cartData.items) {
+        total += item.products.price * item.quantity;
+    }
+
+    if (discount) {
+        total -= total * (discount / 100);
+    }
+
+    return Math.round(total);
+}
+
+function generateReceiptID() {
+    return "rcpt_" + Date.now();
+}
+
+
+// For confirm order
+const validateCart = async (userId, session) => {
+    const cartData = await Cart.findOne({ user_id: userId })
+        .populate("items.products")
+        .session(session);
+
+    if (!cartData || cartData.items.length === 0) {
+        return { valid: false, outOfStock: [], maxExceed: [], cartData: null };
+    }
+
+    let outOfStock = [];
+    let maxExceed = [];
+
+    for (const item of cartData.items) {
+        const product = item.products;
+        if (!product) continue;
+
+        if (product.quantity <= 0) {
+            outOfStock.push(product.name);
+        } else if (product.quantity < item.quantity) {
+            maxExceed.push(product.name);
+        }
+    }
+
+    return {
+        valid: outOfStock.length === 0 && maxExceed.length === 0,
+        outOfStock,
+        maxExceed,
+        cartData
+    };
+};
+
+const calculateCartTotals = async (cartData, discountPercent = 0, paymentMethod, paymentStatus, session) => {
+    let totalAmount = 0;
+    let items = [];
+
+    for (const item of cartData.items) {
+        const product = await Product.findById(item.products).session(session);
+
+        const status = (paymentMethod === "Razorpay" && paymentStatus === "Pending")
+            ? "Pending"
+            : "Confirmed";
+
+        const itemDetails = {
+            product_id: product._id,
+            name: product.name,
+            price: product.offer_price,
+            category: product.category,
+            gender: product.gender,
+            brand: product.brand,
+            imageUrl: product.images[0],
+            quantity: item.quantity,
+            status
+        };
+
+        items.push(itemDetails);
+
+        totalAmount += product.offer_price * item.quantity;
+
+        // reduce stock
+        product.quantity -= item.quantity;
+        await product.save({ session });
+    }
+
+    const discountAmount = discountPercent ? Math.round(totalAmount * (discountPercent / 100)) : 0;
+    const finalAmount = Math.round(totalAmount - discountAmount);
+
+    return { items, totalAmount: finalAmount, discount: discountAmount };
+};
+
+const createOrder = async (userId, items, totalAmount, discount, addressIndex, paymentMethod, paymentStatus, session) => {
+    const addressData = await Address.findOne({ user_id: userId }).session(session);
+
+    const newOrder = new Order({
+        user: userId,
+        orderId: generateOrderID(),
+        totalAmount,
+        discount,
+        items,
+        address: addressData.address[addressIndex],
+        payment_method: paymentMethod,
+        payment_status: paymentStatus
+    });
+
+    await newOrder.save({ session });
+
+    // empty cart
+    await Cart.findOneAndUpdate({ user_id: userId }, { items: [] }).session(session);
+};
+
+const updateWallet = async (userId, amount, type, session) => {
+    let wallet = await Wallet.findOne({ user_id: userId }).session(session);
+
+    if (!wallet) {
+        wallet = new Wallet({
+            user_id: userId,
+            balance: 0,
+            history: []
+        });
+    }
+
+    const previousBalance = wallet.balance || 0;
+    const updatedBalance = previousBalance + amount;
+    wallet.balance = updatedBalance;
+
+    const transaction = {
+        amount: Math.abs(amount),
+        transaction_type: type,
+        previous_balance: previousBalance,
+        new_balance: updatedBalance,
+        created_at: new Date()
+    };
+
+    wallet.history.push(transaction);
+    await wallet.save({ session });
+    return transaction.new_balance;
+};
+
+const applyReferralBonus = async (userId, session) => {
+    const userData = await User.findById(userId).session(session);
+    if (!userData?.referred_code) return;
+
+    const referrer = await User.findOne({ referral_code: userData.referred_code }).session(session);
+    if (!referrer) return;
+
+    // referrer gets 100
+    await updateWallet(referrer._id, 100, "Referral cashback", session);
+    // referred user gets 25
+    await updateWallet(userId, 25, "Referral cashback", session);
+};
+
+const generateOrderID = () => {
+    const min = 10000000;
+    const max = 99999999;
+    return Math.floor(Math.random() * (max - min + 1) + min);
+}
+
 
 
 export {

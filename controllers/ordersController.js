@@ -1,3 +1,4 @@
+import mongoose from "mongoose";
 import User from "../models/userModel.js";
 import Order from "../models/orderModel.js";
 import Product from "../models/productsModel.js";
@@ -39,22 +40,23 @@ const laodOrders = async (req, res, next) => {
     }
 }
 
-
 const loadOrderDetails = async (req, res, next) => {
     try {
         const orderId = req.query.id;
-        console.log(orderId);
         const userId = req.session._id;
-        const userData = await User.findOne({ _id: userId });
 
-        const orderData = await Order.findOne({ user: req.session._id, orderId: orderId }).populate("user");
+        const userData = await User.findById(userId);
+
+        const orderData = await Order.findOne({ user: userId, orderId }).populate("user");
+
         if (!orderData) {
-            return res.redirect('/orders');
+            return res.redirect("/orders");
+            // return res.status(403).json({ success: false, message: "Access denied" });
         }
 
-        const cartData = await Cart.findOne({ user_id: userId }).populate('items.products');
+        const cartData = await Cart.findOne({ user_id: userId }).populate("items.products");
         const cartItemCount = cartData ? cartData.items.length : 0;
-        // console.log(orderData)
+
         res.render("order-details", { user: userData, order: orderData, cartCount: cartItemCount });
 
     } catch (error) {
@@ -63,22 +65,82 @@ const loadOrderDetails = async (req, res, next) => {
     }
 }
 
+// const cancelOrder = async (req, res, next) => {
+//     try {
+
+//         console.log("cancel order")
+//         const { cancellationReason, productId, orderId } = req.body;
+
+//         const updatedOrder = await Order.findOneAndUpdate(
+//             { orderId: orderId, "items.product_id": productId },
+//             {
+//                 $set: {
+//                     'items.$.status': "Cancelled",
+//                     'items.$.reason': cancellationReason
+//                 }
+//             },
+//             { new: true }
+//         );
+
+//         const cancelledProduct = updatedOrder.items.find(item => item.product_id.toString() === productId);
+//         const cancelledQuantity = parseInt(cancelledProduct.quantity);
+
+//         await Product.findOneAndUpdate(
+//             { _id: productId },
+//             { $inc: { quantity: cancelledQuantity } }
+//         );
+
+//         if (updatedOrder.payment_method === "Razorpay" || updatedOrder.payment_method === "Wallet") {
+
+//             const wallet = await Wallet.findOne({ user_id: req.session._id });
+
+//             const refundAmount = cancelledProduct.price * cancelledQuantity;
+//             console.log("refundAmount:", refundAmount);
+//             const previousBalance = wallet.balance;
+
+
+//             await Wallet.findOneAndUpdate(
+//                 { user_id: req.session._id },
+//                 {
+//                     $inc: { balance: refundAmount },
+//                     $push: {
+//                         history: {
+//                             amount: refundAmount,
+//                             transaction_type: "Refund",
+//                             date: new Date(),
+//                             previous_balance: previousBalance
+//                         }
+//                     }
+//                 },
+//                 { upsert: true }
+//             );
+//         }
+
+//         console.log(updatedOrder);
+//         res.status(200).json({ message: 'Order cancelled successfully' });
+
+//     } catch (error) {
+//         error.statusCode = 500;
+//         next(error);
+//     }
+// }
 
 const cancelOrder = async (req, res, next) => {
-    try {
+    const session = await mongoose.startSession();
+    session.startTransaction();
 
-        console.log("cancel order")
+    try {
         const { cancellationReason, productId, orderId } = req.body;
 
         const updatedOrder = await Order.findOneAndUpdate(
             { orderId: orderId, "items.product_id": productId },
             {
                 $set: {
-                    'items.$.status': "Cancelled",
-                    'items.$.reason': cancellationReason
+                    "items.$.status": "Cancelled",
+                    "items.$.reason": cancellationReason
                 }
             },
-            { new: true }
+            { new: true, session }
         );
 
         const cancelledProduct = updatedOrder.items.find(item => item.product_id.toString() === productId);
@@ -86,44 +148,39 @@ const cancelOrder = async (req, res, next) => {
 
         await Product.findOneAndUpdate(
             { _id: productId },
-            { $inc: { quantity: cancelledQuantity } }
+            { $inc: { quantity: cancelledQuantity } },
+            { session }
         );
 
         if (updatedOrder.payment_method === "Razorpay" || updatedOrder.payment_method === "Wallet") {
 
-            const wallet = await Wallet.findOne({ user_id: req.session._id });
-
+            const wallet = await Wallet.findOne({ user_id: req.session._id }).session(session);
             const refundAmount = cancelledProduct.price * cancelledQuantity;
-            console.log("refundAmount:", refundAmount);
             const previousBalance = wallet.balance;
 
+            wallet.balance += refundAmount;
+            wallet.history.push({
+                amount: refundAmount,
+                transaction_type: "Refund",
+                previous_balance: previousBalance,
+                new_balance: wallet.balance,
+                date: new Date()
+            });
 
-            await Wallet.findOneAndUpdate(
-                { user_id: req.session._id },
-                {
-                    $inc: { balance: refundAmount },
-                    $push: {
-                        history: {
-                            amount: refundAmount,
-                            transaction_type: "Refund",
-                            date: new Date(),
-                            previous_balance: previousBalance
-                        }
-                    }
-                },
-                { upsert: true }
-            );
+            await wallet.save({ session });
         }
 
-        console.log(updatedOrder);
-        res.status(200).json({ message: 'Order cancelled successfully' });
+        await session.commitTransaction();
 
+        res.status(200).json({ message: "Order cancelled successfully" });
     } catch (error) {
+        await session.abortTransaction();
         error.statusCode = 500;
         next(error);
+    } finally {
+        session.endSession();
     }
 }
-
 
 const returnOrder = async (req, res, next) => {
     try {
@@ -132,7 +189,7 @@ const returnOrder = async (req, res, next) => {
         req.session.reason = returnReason;
         console.log(productId, orderId, returnReason);
 
-        const updatedOrder = await Order.findOneAndUpdate(
+        await Order.findOneAndUpdate(
             { user: req.session._id, orderId: orderId, "items.product_id": productId },
             { $set: { 'items.$.return_approval': 1, 'items.$.reason': returnReason } },
             { new: true }
@@ -146,40 +203,78 @@ const returnOrder = async (req, res, next) => {
     }
 }
 
-
 const loadAdminOrders = async (req, res, next) => {
-
     try {
         const page = parseInt(req.query.page) || 1;
+        const query = (req.query.q || '').trim();
+        const status = (req.query.status || '').trim();
+        const sortBy = (req.query.sortBy || 'date');
+        const sortOrder = (req.query.sortOrder || 'desc'); // 'asc' | 'desc'
         const limit = 10;
         const skip = (page - 1) * limit;
-        const totalCount = await Order.countDocuments();
-        const totalPages = Math.ceil(totalCount / limit);
-        const ordersData = await Order.find().populate("user").skip(skip).limit(limit).sort({ date: -1 });
 
-        res.render("orders", { orders: ordersData, currentPage: page, totalPages: totalPages });
+        let matchClause = {};
+        if (query) {
+            // Find users whose name or email matches
+            const matchingUsers = await User.find({
+                $or: [
+                    { name: { $regex: query, $options: 'i' } },
+                    { email: { $regex: query, $options: 'i' } },
+                ]
+            }, { _id: 1 });
+            const userIds = matchingUsers.map(u => u._id);
+
+            matchClause = {
+                $or: [
+                    { orderId: { $regex: query, $options: 'i' } },
+                    { user: { $in: userIds } },
+                ]
+            };
+        }
+
+        if (status) {
+            matchClause.payment_status = status;
+        }
+
+        // Build sort option (only on indexable/simple fields)
+        const sort = {};
+        const normalizedOrder = (String(sortOrder).toLowerCase() === 'asc') ? 1 : -1;
+        if (sortBy === 'totalAmount') sort.totalAmount = normalizedOrder;
+        else if (sortBy === 'orderId') sort.orderId = normalizedOrder;
+        else sort.date = normalizedOrder; // default
+
+        const [totalCount, ordersData] = await Promise.all([
+            Order.countDocuments(matchClause),
+            Order.find(matchClause).populate('user').sort(sort).skip(skip).limit(limit),
+        ]);
+
+        const totalPages = Math.ceil(totalCount / limit) || 1;
+
+        const wantsJson = req.xhr || (req.headers.accept && req.headers.accept.includes('application/json'));
+        if (wantsJson) {
+            return res.json({ orders: ordersData, currentPage: page, totalPages, query, status, sortBy, sortOrder });
+        }
+
+        res.render("orders", { orders: ordersData, currentPage: page, totalPages: totalPages, query, status, sortBy, sortOrder });
 
     } catch (error) {
         error.statusCode = 500;
         next(error);
     }
 }
-
 
 const loadAdminOrderDetails = async (req, res, next) => {
     try {
         const orderId = req.query.id;
         console.log("order id:", orderId);
         const orderData = await Order.findOne({ orderId: orderId }).populate("user");
-
-        const orderStatus = ["Confirmed", "Shipped", "Cancelled", "Delivered"]
+        const orderStatus = ["Confirmed", "Shipped", "Cancelled", "Delivered"];
         res.render("order-details", { order: orderData, status: orderStatus });
     } catch (error) {
         error.statusCode = 500;
         next(error);
     }
 }
-
 
 const changeOrderStatus = async (req, res, next) => {
     try {
@@ -214,69 +309,127 @@ const changeOrderStatus = async (req, res, next) => {
     }
 }
 
+// const approveReturn = async (req, res, next) => {
+//     try {
+//         console.log("return order")
+//         const { productId, orderId, reason } = req.body;
+
+//         console.log(productId, orderId, reason);
+
+//         const updatedOrder = await Order.findOneAndUpdate(
+//             { orderId: orderId, "items.product_id": productId },
+//             {
+//                 $set: {
+//                     'items.$.return_approval': 2,
+//                     'items.$.status': "Returned",
+//                     'items.$.reason': reason
+//                 }
+//             },
+//             { new: true }
+//         );
+
+//         const returnedProduct = updatedOrder.items.find(item => item.product_id.toString() === productId);
+//         const returnedQuantity = parseInt(returnedProduct.quantity);
+
+//         if (returnedProduct.reason !== "Defective or Damaged Product") {
+
+//             await Product.findOneAndUpdate(
+//                 { _id: productId },
+//                 { $inc: { quantity: returnedQuantity } }
+//             );
+//         }
+
+//         const wallet = await Wallet.findOne({ user_id: req.session._id });
+
+//         const refundAmount = returnedProduct.price * returnedQuantity;
+//         const previousBalance = wallet.balance;
+
+//         await Wallet.findOneAndUpdate(
+//             { user_id: req.session._id },
+//             {
+//                 $inc: { balance: refundAmount },
+//                 $push: {
+//                     history: {
+//                         amount: refundAmount,
+//                         transaction_type: "Refund",
+//                         date: new Date(),
+//                         previous_balance: previousBalance
+//                     }
+//                 }
+//             },
+//             { upsert: true }
+//         );
+
+//         res.status(200).json({ message: 'Order returned successfully' });
+
+//     } catch (error) {
+//         error.statusCode = 500;
+//         next(error);
+//     }
+// }
 
 const approveReturn = async (req, res, next) => {
-    try {
-        console.log("return order")
-        const { productId, orderId, reason } = req.body;
+    const session = await mongoose.startSession();
+    session.startTransaction();
 
-        console.log(productId, orderId, reason);
+    try {
+        const { productId, orderId, reason } = req.body;
+        console.log("return order :", productId, orderId, reason);
 
         const updatedOrder = await Order.findOneAndUpdate(
             { orderId: orderId, "items.product_id": productId },
             {
                 $set: {
-                    'items.$.return_approval': 2,
-                    'items.$.status': "Returned",
-                    'items.$.reason': reason
+                    "items.$.return_approval": 2,
+                    "items.$.status": "Returned",
+                    "items.$.reason": reason
                 }
             },
-            { new: true }
+            { new: true, session }
         );
 
         const returnedProduct = updatedOrder.items.find(item => item.product_id.toString() === productId);
         const returnedQuantity = parseInt(returnedProduct.quantity);
 
+        // Restore stock
         if (returnedProduct.reason !== "Defective or Damaged Product") {
-
             await Product.findOneAndUpdate(
                 { _id: productId },
-                { $inc: { quantity: returnedQuantity } }
+                { $inc: { quantity: returnedQuantity } },
+                { session }
             );
         }
 
-        const wallet = await Wallet.findOne({ user_id: req.session._id });
-
+        // Update wallet
+        const wallet = await Wallet.findOne({ user_id: req.session._id }).session(session);
         const refundAmount = returnedProduct.price * returnedQuantity;
         const previousBalance = wallet.balance;
 
-        await Wallet.findOneAndUpdate(
-            { user_id: req.session._id },
-            {
-                $inc: { balance: refundAmount },
-                $push: {
-                    history: {
-                        amount: refundAmount,
-                        transaction_type: "Refund",
-                        date: new Date(),
-                        previous_balance: previousBalance
-                    }
-                }
-            },
-            { upsert: true }
-        );
+        wallet.balance += refundAmount;
+        wallet.history.push({
+            amount: refundAmount,
+            transaction_type: "Refund",
+            previous_balance: previousBalance,
+            new_balance: wallet.balance,
+            date: new Date()
+        });
 
-        res.status(200).json({ message: 'Order returned successfully' });
+        await wallet.save({ session });
+
+        await session.commitTransaction();
+
+        res.status(200).json({ message: "Order returned successfully" });
 
     } catch (error) {
+        await session.abortTransaction();
         error.statusCode = 500;
         next(error);
+    } finally {
+        session.endSession();
     }
 }
 
-
 const declineReturn = async (req, res, next) => {
-
     try {
         console.log("return order")
         const { productId, orderId } = req.body;
@@ -299,68 +452,142 @@ const declineReturn = async (req, res, next) => {
     }
 }
 
-
 const generatereceiptID = () => {
     const min = 10000000;
     const max = 99999999;
     return Math.floor(Math.random() * (max - min + 1) + min);
 }
 
+// const orderRepaymentRazorPpay = async (req, res, next) => {
+//     try {
+//         console.log(razorpay.key_id, razorpay.key_secret);
+
+//         const { orderId } = req.body;
+//         const orderData = await Order.findOne({ orderId: orderId });
+//         console.log(orderData.totalAmount);
+//         const amount = orderData.totalAmount;
+//         const receiptID = generatereceiptID();
+//         const order = await razorpay.orders.create({
+//             amount: amount * 100,
+//             currency: 'INR',
+//             receipt: `${receiptID}`,
+//             payment_capture: 1
+//         });
+
+//         res.status(200).json({ success: true, order });
+//     } catch (error) {
+//         error.statusCode = 500;
+//         next(error);
+//     }
+// }
+
 const orderRepaymentRazorPpay = async (req, res, next) => {
     try {
-        console.log(razorpay.key_id, razorpay.key_secret);
 
         const { orderId } = req.body;
-        const orderData = await Order.findOne({ orderId: orderId });
-        console.log(orderData.totalAmount);
+
+        if (!orderId) {
+            return res.status(400).json({ success: false, message: "Order ID is required" });
+        }
+        // console.log(razorpay.key_id, razorpay.key_secret);
+
+        const orderData = await Order.findOne({ orderId });
+        if (!orderData) {
+            return res.status(404).json({ success: false, message: "Order not found" });
+        }
+
         const amount = orderData.totalAmount;
+        if (!amount || amount <= 0) {
+            return res.status(400).json({ success: false, message: "Invalid order amount" });
+        }
+
         const receiptID = generatereceiptID();
-        const order = await razorpay.orders.create({
-            amount: amount * 100,
+
+        const razorpayOrder = await razorpay.orders.create({
+            amount: amount * 100, 
             currency: 'INR',
-            receipt: `${receiptID}`,
+            receipt: receiptID,
             payment_capture: 1
         });
 
-        res.status(200).json({ success: true, order });
+        res.status(200).json({ success: true, order: razorpayOrder });
+
     } catch (error) {
+        console.error("Error in orderRepaymentRazorPay:", error);
         error.statusCode = 500;
         next(error);
     }
 }
 
+// const orderRepayment = async (req, res, next) => {
+//     try {
+//         const { orderId } = req.body;
+//         console.log(orderId);
+
+//         await Order.findOneAndUpdate(
+//             { orderId: orderId },
+//             { payment_status: "Success" },
+//             { new: true }
+//         );
+
+//         // Update each product status to "Confirmed"
+//         const order = await Order.findOne({ orderId: orderId });
+//         const bulkWriteOperations = order.items.map((item) => ({
+//             updateOne: {
+//                 filter: { _id: item.product_id },
+//                 update: { $set: { "items.$.status": "Confirmed" } }
+//             }
+//         }));
+
+//         // Execute bulk write operations
+//         await Order.bulkWrite(bulkWriteOperations);
+
+//         console.log(order)
+
+//         res.status(200).json({ success: true, message: 'Order payment status updated successfully' });
+
+//     } catch (error) {
+//         error.statusCode = 500;
+//         next(error);
+//     }
+// }
 
 const orderRepayment = async (req, res, next) => {
-    try {
+    const session = await mongoose.startSession();
+    session.startTransaction();
 
+    try {
         const { orderId } = req.body;
         console.log(orderId);
 
-        await Order.findOneAndUpdate(
-            { orderId: orderId },
+        const order = await Order.findOneAndUpdate(
+            { orderId },
             { payment_status: "Success" },
-            { new: true }
+            { new: true, session }
         );
 
-        // Update each product status to "Confirmed"
-        const order = await Order.findOne({ orderId: orderId });
-        const bulkWriteOperations = order.items.map((item) => ({
+        // Update each item status
+        const bulkOps = order.items.map((item, index) => ({
             updateOne: {
-                filter: { _id: item.product_id },
-                update: { $set: { "items.$.status": "Confirmed" } }
+                filter: { orderId, [`items.${index}.product_id`]: item.product_id },
+                update: { $set: { [`items.${index}.status`]: "Confirmed" } }
             }
         }));
 
-        // Execute bulk write operations
-        await Order.bulkWrite(bulkWriteOperations);
+        await Order.bulkWrite(bulkOps, { session });
 
-        console.log(order)
+        await session.commitTransaction();
+
+        console.log("order :", order);
 
         res.status(200).json({ success: true, message: 'Order payment status updated successfully' });
 
     } catch (error) {
+        await session.abortTransaction();
         error.statusCode = 500;
         next(error);
+    } finally {
+        session.endSession()
     }
 }
 

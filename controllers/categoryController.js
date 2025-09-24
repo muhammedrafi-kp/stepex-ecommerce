@@ -3,39 +3,31 @@ import Category from "../models/categoryModel.js";
 
 const loadCategory = async (req, res, next) => {
     try {
-
         const categoryData = await Category.find({ is_delete: 0 });
         res.render("categories", { categories: categoryData });
-
     } catch (error) {
         error.statusCode = 500;
         next(error);
     }
 }
-
 
 const loadAddCategory = async (req, res, next) => {
     try {
         res.render("add-category");
-
     } catch (error) {
         error.statusCode = 500;
         next(error);
     }
 }
 
-
 const addCategory = async (req, res, next) => {
     try {
-
         const name = req.body.name;
-        const existingCategoryWithName = await Category.findOne({ name: name });
+        const existingCategory = await Category.findOne({ name: name });
 
-        if (existingCategoryWithName) {
-
+        if (existingCategory) {
             res.render("add-category", { name: req.body.name, message: "Category with the same name already exists" });
         } else {
-
             const category = new Category({
                 name: req.body.name,
                 image: req.file.filename,
@@ -54,23 +46,20 @@ const addCategory = async (req, res, next) => {
     }
 }
 
-
 const loadUnlistedCategories = async (req, res, next) => {
     try {
         const categoryData = await Category.find({ is_delete: 1 });
         res.render("unlisted-categories", { categories: categoryData });
-
     } catch (error) {
         error.statusCode = 500;
         next(error);
     }
 }
 
-
 const unlistCategory = async (req, res, next) => {
     try {
         const id = req.query.id;
-        console.log(id, "hi")
+
         await Category.updateOne(
             { _id: id },
             { $set: { is_delete: 1 } }
@@ -84,15 +73,14 @@ const unlistCategory = async (req, res, next) => {
     }
 }
 
-
 const retrieveCategory = async (req, res, next) => {
     try {
         const id = req.query.id;
-        console.log(id, "hi")
         await Category.updateOne(
             { _id: id },
             { $set: { is_delete: 0 } }
         );
+
         res.redirect("/admin/category/unlisted-categories");
 
     } catch (error) {
@@ -101,19 +89,16 @@ const retrieveCategory = async (req, res, next) => {
     }
 }
 
-
 const loadEditCategory = async (req, res, next) => {
     try {
         const id = req.query.id;
         const categoryData = await Category.findOne({ _id: id });
         res.render("edit-category", { category: categoryData });
-
     } catch (error) {
         error.statusCode = 500;
         next(error);
     }
 }
-
 
 const editCategory = async (req, res, next) => {
     try {
@@ -135,7 +120,6 @@ const editCategory = async (req, res, next) => {
             await Category.findByIdAndUpdate({ _id: id }, { $set: { name: req.body.name, image: image } });
             res.redirect("/admin/categories");
         }
-
     } catch (error) {
         error.statusCode = 500;
         next(error);

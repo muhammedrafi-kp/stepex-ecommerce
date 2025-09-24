@@ -15,7 +15,6 @@ const razorpay = new Razorpay({
 
 
 const loadCart = async (req, res, next) => {
-
     try {
         const userId = req.session._id;
         const userData = await User.findOne({ _id: userId });
@@ -23,16 +22,13 @@ const loadCart = async (req, res, next) => {
         const cartItemCount = cartData ? cartData.items.length : 0;
 
         res.render("cart", { user: userData, cart: cartData, cartCount: cartItemCount });
-
     } catch (error) {
         error.statusCode = 500;
         next(error);
     }
 }
 
-
 const addToCart = async (req, res, next) => {
-
     try {
         const { productId } = req.body;
         const userId = req.session._id;
@@ -67,19 +63,18 @@ const addToCart = async (req, res, next) => {
     }
 };
 
-
 const updateCartQuantity = async (req, res, next) => {
     try {
         const { productId, quantity } = req.body;
 
         const userId = req.session._id;
         console.log(productId, quantity, userId);
+
         const cartData = await Cart.findOneAndUpdate(
             { user_id: userId, "items.products": productId },
             { $set: { "items.$.quantity": quantity } },
             { new: true }
         );
-        console.log(cartData);
 
         res.status(200).json({ message: 'Cart quantity updated successfully' });
 
@@ -106,7 +101,6 @@ const removeProductFromCart = async (req, res, next) => {
         next(error);
     }
 }
-
 
 export {
     loadCart,

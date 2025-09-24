@@ -388,7 +388,16 @@
                                 },
                                 body: JSON.stringify(data)
                             })
-                                .then(response => response.json())
+                                .then(async (response) => {
+                                    console.log("response:", response)
+                                    const data = await response.json();
+                                    if (!response.ok) {
+                                        const error = new Error(data.message || 'Something went wrong');
+                                        error.status = response.status;
+                                        throw error;
+                                    }
+                                    return data;
+                                })
                                 .then(data => {
 
                                     if (data.success) {
@@ -405,6 +414,15 @@
                                 })
                                 .catch(error => {
                                     console.error('Error:', error);
+                                    Swal.fire({
+                                        icon: 'warning',
+                                        text: error.message || 'Something went wrong',
+                                        confirmButtonText: 'OK',
+                                        timer: 1800,
+                                        timerProgressBar: true
+                                    }).then(() => {
+                                        window.location.href = '/shop';
+                                    });
                                 });
                         }
                     });
@@ -429,12 +447,13 @@
                     })
                         .then(async (response) => {
                             console.log("response:", response)
-                            const data = await response.json(); // always try to parse the JSON
+                            const data = await response.json();
                             if (!response.ok) {
-                                // Handle server-side error (like 400)
-                                throw new Error(data.message || 'Something went wrong');
+                                const error = new Error(data.message || 'Something went wrong');
+                                error.status = response.status;
+                                throw error;
                             }
-                            return data; // success
+                            return data;
                         })
                         .then(data => {
 
@@ -447,8 +466,7 @@
                                 image: '/logo/stepexlogo.png',
                                 handler: function (response) {
 
-                                    console.log('Payment successful! Payment ID:', response);
-                                    const paymentMethod = 'Razorpay';
+                                    const paymentMethod = "Razorpay";
                                     const paymentStatus = "Success";
                                     const data = { paymentMethod: paymentMethod, paymentStatus: paymentStatus };
 
@@ -459,7 +477,16 @@
                                         },
                                         body: JSON.stringify(data)
                                     })
-                                        .then(response => response.json())
+                                        .then(async (response) => {
+                                            console.log("response:", response)
+                                            const data = await response.json();
+                                            if (!response.ok) {
+                                                const error = new Error(data.message || 'Something went wrong');
+                                                error.status = response.status;
+                                                throw error;
+                                            }
+                                            return data;
+                                        })
                                         .then(data => {
                                             if (data.success) {
                                                 window.location.href = '/order-placed?status=success';
@@ -467,13 +494,20 @@
                                                 Swal.fire({
                                                     icon: 'warning',
                                                     text: data.message
-
                                                 });
                                             }
                                         })
                                         .catch(error => {
                                             console.error('Error:', error);
-                                            alert('Failed to confirm payment');
+                                            Swal.fire({
+                                                icon: 'warning',
+                                                text: error.message || 'Something went wrong',
+                                                confirmButtonText: 'OK',
+                                                timer: 1800,
+                                                timerProgressBar: true
+                                            }).then(() => {
+                                                window.location.href = '/shop';
+                                            });
                                         });
                                 },
                                 prefill: {
@@ -482,7 +516,6 @@
                                     contact: '9876543210'
                                 },
                                 notes: {
-
                                     'order_id': 'ORDERID12345'
                                 },
                                 theme: {
@@ -490,7 +523,6 @@
                                 },
                                 modal: {
                                     ondismiss: function () {
-                                        // This code will run when the modal is closed
                                         console.log("Razorpay modal closed.");
                                         fetch('/checkout/payment/unlock', {
                                             method: 'POST',
@@ -498,30 +530,24 @@
                                                 'Content-Type': 'application/json'
                                             }
                                         })
-                                        .then(response => response.json())
-                                        .then(data => {
-                                            console.log("data:", data)
-                                        })
-                                        .catch(error => {
-                                            console.error('Error:', error);
-                                        });
+                                            .then(response => response.json())
+                                            .then(data => {
+                                                console.log("data:", data)
+                                            })
+                                            .catch(error => {
+                                                console.error('Error:', error);
+                                            });
                                     }
                                 }
                             };
 
                             var rzp = new Razorpay(options);
                             rzp.open();
-                            console.log("rzp:", rzp);
-
-                            // rzp.on('modal.close', function () {
-                            //     console.log("Modal was closed by the user");
-                            //     // Add your custom logic here, e.g., show a message to the user.
-                            // });
 
                             rzp.on('payment.failed', () => {
                                 setTimeout(() => {
                                     rzp.close();
-                                    const paymentMethod = 'Razorpay';
+                                    const paymentMethod = "Razorpay";
                                     const paymentStatus = "Pending";
                                     const data = { paymentMethod: paymentMethod, paymentStatus: paymentStatus };
                                     fetch('/confirm-order', {
@@ -540,22 +566,34 @@
                                                     icon: 'warning',
                                                     text: data.message
                                                 });
+
                                             }
                                         })
                                         .catch(error => {
                                             console.error('Error:', error);
-                                            alert('Failed to confirm payment');
+                                            Swal.fire({
+                                                icon: 'error',
+                                                text: error.message
+                                            });
+
+                                            window.location.href = '/';
+
                                         });
                                 }, 3000);
                             });
 
                         })
                         .catch(error => {
-                            console.log('Error:', error.message);
+                            console.log('Error in catch:', error);
 
                             Swal.fire({
                                 icon: 'warning',
-                                text: error.message
+                                text: error.message || 'Something went wrong',
+                                confirmButtonText: 'OK',
+                                timer: 1800,
+                                timerProgressBar: true
+                            }).then(() => {
+                                window.location.href = '/shop';
                             });
                         });
                 }
@@ -619,23 +657,38 @@
                                     },
                                     body: JSON.stringify(data)
                                 })
-                                    .then(response => response.json())
+                                    .then(async (response) => {
+                                        console.log("response:", response)
+                                        const data = await response.json();
+                                        if (!response.ok) {
+                                            const error = new Error(data.message || 'Something went wrong');
+                                            error.status = response.status;
+                                            throw error;
+                                        }
+                                        return data;
+                                    })
                                     .then(data => {
-
                                         if (data.success) {
                                             window.location.href = '/order-placed?status=success';
-
                                         } else {
-
                                             Swal.fire({
                                                 icon: 'warning',
                                                 text: data.message
-
                                             });
                                         }
                                     })
                                     .catch(error => {
-                                        console.error('Error:', error);
+                                        console.log('Error in catch:', error);
+
+                                        Swal.fire({
+                                            icon: 'warning',
+                                            text: error.message || 'Something went wrong',
+                                            confirmButtonText: 'OK',
+                                            timer: 1800,
+                                            timerProgressBar: true
+                                        }).then(() => {
+                                            window.location.href = '/shop';
+                                        });
                                     });
                             }
                         });

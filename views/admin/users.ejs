@@ -36,11 +36,17 @@
                 </span> MANAGE USERS
               </h3>
 
-
               <div class="col-lg-12 grid-margin stretch-card ">
                 <div class="card">
                   <div class="card-body">
-                    
+                    <div class="row">
+                      <div class="col-md-6 mb-3">
+                        <input id="user-search-input" type="text" class="form-control" name="q" placeholder="Search by name or email" value="<%= typeof query !== 'undefined' ? query : '' %>">
+                      </div>
+                      <div class="col-md-6 mb-3 d-flex">
+                        <a href="?" class="btn btn-light">Clear</a>
+                      </div>
+                    </div>
                     <table class="table table-striped mt-3">
                       <thead class="text-center bg-secondary ">
                         <tr>
@@ -51,52 +57,35 @@
                           <th class="font-weight-bold"> Action </th>
                         </tr>
                       </thead>
-
-                      <% if(users.length> 0 ) { %>
-                        <% users.forEach(function(user, index) { %>
-                          <tbody class="text-center ">
-                            <tr class="<%=(index+1) %2==0? 'bg-light' :'' %> ">
-                              <td>
-                                <%= index+1 %>.
-                              </td>
-                              <td>
-                                <%= user.name %>
-                              </td>
-                              <td>
-                                <%= user.email %>
-                              </td>
-                              <td class=" badge <%= user.is_block ? 'badge-danger':'badge-success'; %> p-0 mt-3">
-                                <%= user.is_block ? 'Blocked' :'Active'; %>
-                              </td>
+                      <tbody id="users-tbody" class="text-center ">
+                        <% if(users.length> 0 ) { %>
+                          <% users.forEach(function(user, index) { %>
+                            <tr>
+                              <td><%= index+1 %>.</td>
+                              <td><%= user.name %></td>
+                              <td><%= user.email %></td>
+                              <td class=" badge <%= user.is_block ? 'badge-danger':'badge-success'; %> p-0 mt-3"><%= user.is_block ? 'Blocked' :'Active'; %></td>
                               <td>
                                 <% if (user.is_block) { %>
-                                  <button class="btn btn-success py-1 px-2" onclick="unblockUser('<%=user._id %>')">Un
-                                    Block</button>
-                                  <% } else { %>
-                                    <button class="btn btn-danger py-1 px-2"
-                                      onclick="blockUser('<%=user._id %>')">Block</button>
-
-                                    <% } %>
+                                  <button class="btn btn-success py-1 px-2" onclick="unblockUser('<%=user._id %>')">Un Block</button>
+                                <% } else { %>
+                                  <button class="btn btn-danger py-1 px-2" onclick="blockUser('<%=user._id %>')">Block</button>
+                                <% } %>
                               </td>
-
                             </tr>
-
-                          </tbody>
                           <% }); %>
-
-                            <% } else { %>
-
-                              <tr>
-                                <td colspan="3">No users found !</td>
-                              </tr>
-                              </tbody>
-
-                              <% } %>
+                        <% } else { %>
+                          <tr>
+                            <td colspan="5">No users found !</td>
+                          </tr>
+                        <% } %>
+                      </tbody>
                     </table>
 
-                    <div class="pagination d-flex justify-content-start mt-5 ">
+                    <div id="users-pagination" class="pagination d-flex justify-content-start mt-5 ">
+                      <% const qParam = (typeof query !== 'undefined' && query) ? `&q=${encodeURIComponent(query)}` : '' %>
                       <% if (currentPage> 1) { %>
-                        <a href="?page=1">&laquo;</a>
+                        <a href="?page=1<%= qParam %>">&laquo;</a>
                         <% } %>
                           <% for (let i=1; i <=totalPages; i++) { %>
                             <% if (i==currentPage) { %>
@@ -104,7 +93,7 @@
                                 <%= i %>
                               </span>
                               <% } else { %>
-                                <span> <a href="?page=<%= i %>" class="btn btn-secondary pagination-btn px-3 py-2">
+                                <span> <a href="?page=<%= i %><%= qParam %>" class="btn btn-secondary pagination-btn px-3 py-2">
 
                                     <%= i %>
 
@@ -112,7 +101,7 @@
                                 <% } %>
                                   <% } %>
                                     <% if (currentPage < totalPages) { %>
-                                      <a href="?page=<%= totalPages %>">&raquo;</a>
+                                      <a href="?page=<%= totalPages %><%= qParam %>">&raquo;</a>
                                       <% } %>
                     </div>
                   </div>
@@ -125,6 +114,153 @@
 
 
   <script>
+    function debounce(fn, delay) {
+      let timeoutId;
+      return function (...args) {
+        clearTimeout(timeoutId);
+        timeoutId = setTimeout(() => fn.apply(this, args), delay);
+      }
+    }
+
+    async function fetchUsers(params) {
+      const url = new URL(window.location.href);
+      Object.entries(params || {}).forEach(([key, val]) => {
+        if (val === null || val === undefined || val === '') {
+          url.searchParams.delete(key);
+        } else {
+          url.searchParams.set(key, String(val));
+        }
+      });
+      // Always ask JSON
+      const apiUrl = url.toString();
+      const res = await fetch(apiUrl, { headers: { 'Accept': 'application/json' } });
+      if (!res.ok) throw new Error('Failed to fetch users');
+      return res.json();
+    }
+
+    function renderUsers(data) {
+      const tbody = document.getElementById('users-tbody');
+      const pagination = document.getElementById('users-pagination');
+      if (!tbody || !pagination) return;
+
+      // Render rows
+      const users = Array.isArray(data.users) ? data.users : [];
+      if (users.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="5">No users found !</td></tr>';
+      } else {
+        tbody.innerHTML = users.map((u, idx) => `
+          <tr>
+            <td>${idx + 1}.</td>
+            <td>${u.name ?? ''}</td>
+            <td>${u.email ?? ''}</td>
+            <td class=" badge ${u.is_block ? 'badge-danger' : 'badge-success'} p-0 mt-3">${u.is_block ? 'Blocked' : 'Active'}</td>
+            <td>
+              ${u.is_block
+                ? `<button class="btn btn-success py-1 px-2" onclick="unblockUser('${u._id}')">Un Block</button>`
+                : `<button class="btn btn-danger py-1 px-2" onclick="blockUser('${u._id}')">Block</button>`}
+            </td>
+          </tr>
+        `).join('');
+      }
+
+      // Render pagination
+      const totalPages = Number(data.totalPages || 1);
+      const currentPage = Number(data.currentPage || 1);
+      const q = data.query || '';
+      const qParam = q ? `&q=${encodeURIComponent(q)}` : '';
+
+      let html = '';
+      if (currentPage > 1) {
+        html += `<a href="?page=1${qParam}">&laquo;</a>`;
+      }
+      for (let i = 1; i <= totalPages; i++) {
+        if (i === currentPage) {
+          html += `<span class="btn btn-primary pagination-btn px-3 py-2">${i}</span>`;
+        } else {
+          html += `<span><a href="?page=${i}${qParam}" class="btn btn-secondary pagination-btn px-3 py-2">${i}</a></span>`;
+        }
+      }
+      if (currentPage < totalPages) {
+        html += `<a href="?page=${totalPages}${qParam}">&raquo;</a>`;
+      }
+      pagination.innerHTML = html;
+
+      // Intercept pagination clicks for AJAX
+      pagination.querySelectorAll('a').forEach(a => {
+        a.addEventListener('click', function (e) {
+          e.preventDefault();
+          const url = new URL(a.href);
+          const nextPage = url.searchParams.get('page') || '1';
+          const q = url.searchParams.get('q') || '';
+          fetchUsers({ page: nextPage, q }).then(data => {
+            renderUsers(data);
+            // Update URL without reload
+            const current = new URL(window.location.href);
+            current.searchParams.set('page', nextPage);
+            if (q) current.searchParams.set('q', q); else current.searchParams.delete('q');
+            window.history.replaceState({}, '', current.toString());
+          }).catch(console.error);
+        });
+      });
+    }
+
+    const handleSearchChange = debounce(function (event) {
+      const value = (event.target.value || '').trim();
+      fetchUsers({ page: 1, q: value }).then(data => {
+        renderUsers(data);
+        const url = new URL(window.location.href);
+        url.searchParams.set('page', '1');
+        if (value) url.searchParams.set('q', value); else url.searchParams.delete('q');
+        window.history.replaceState({}, '', url.toString());
+      }).catch(console.error);
+    }, 400);
+
+    document.addEventListener('DOMContentLoaded', function () {
+      const input = document.getElementById('user-search-input');
+      if (input) input.addEventListener('input', handleSearchChange);
+      // Intercept initial pagination for AJAX
+      const pagination = document.getElementById('users-pagination');
+      if (pagination) {
+        pagination.querySelectorAll('a').forEach(a => {
+          a.addEventListener('click', function (e) {
+            e.preventDefault();
+            const url = new URL(a.href);
+            const nextPage = url.searchParams.get('page') || '1';
+            const q = url.searchParams.get('q') || '';
+            fetchUsers({ page: nextPage, q }).then(data => {
+              renderUsers(data);
+              const current = new URL(window.location.href);
+              current.searchParams.set('page', nextPage);
+              if (q) current.searchParams.set('q', q); else current.searchParams.delete('q');
+              window.history.replaceState({}, '', current.toString());
+            }).catch(console.error);
+          });
+        });
+      }
+    });
+
+    function updateUserRow(userId, isBlocked) {
+      const btn = document.querySelector(`#users-tbody button[onclick*="${userId}"]`);
+      const row = btn ? btn.closest('tr') : null;
+      if (!row) return;
+
+      const statusCell = row.querySelector('td.badge');
+      if (statusCell) {
+        statusCell.classList.remove('badge-danger', 'badge-success');
+        statusCell.classList.add(isBlocked ? 'badge-danger' : 'badge-success');
+        statusCell.textContent = isBlocked ? 'Blocked' : 'Active';
+      }
+
+      // Replace action button
+      const actionCell = row.querySelector('td:last-child');
+      if (actionCell) {
+        if (isBlocked) {
+          actionCell.innerHTML = `<button class="btn btn-success py-1 px-2" onclick="unblockUser('${userId}')">Un Block</button>`;
+        } else {
+          actionCell.innerHTML = `<button class="btn btn-danger py-1 px-2" onclick="blockUser('${userId}')">Block</button>`;
+        }
+      }
+    }
 
     async function blockUser(userId) {
       try {
@@ -137,17 +273,20 @@
           confirmButtonText: 'Yes, block'
         });
 
-        if (confirmation.isConfirmed) {
+        if (!confirmation.isConfirmed) return;
 
-          await fetch(`/admin/user-management/block-user?id=${userId}`, {
-            method: 'POST'
-          });
-
-          location.reload();
+        const res = await fetch(`/admin/user-management/block-user?id=${userId}`, {
+          method: 'POST',
+          headers: { 'Accept': 'application/json' }
+        });
+        if (!res.ok) throw new Error('Failed to block');
+        const data = await res.json();
+        if (data && data.ok) {
+          updateUserRow(data.userId, true);
         }
       } catch (error) {
         console.error('Error blocking user:', error);
-
+        Swal.fire({ icon: 'error', text: 'Failed to block user' });
       }
     }
 
@@ -162,17 +301,20 @@
           confirmButtonText: 'Yes, unblock'
         });
 
-        if (confirmation.isConfirmed) {
+        if (!confirmation.isConfirmed) return;
 
-          await fetch(`/admin/user-management/unblock-user?id=${userId}`, {
-            method: 'POST'
-          });
-
-          location.reload();
+        const res = await fetch(`/admin/user-management/unblock-user?id=${userId}`, {
+          method: 'POST',
+          headers: { 'Accept': 'application/json' }
+        });
+        if (!res.ok) throw new Error('Failed to unblock');
+        const data = await res.json();
+        if (data && data.ok) {
+          updateUserRow(data.userId, false);
         }
       } catch (error) {
         console.error('Error unblocking user:', error);
-
+        Swal.fire({ icon: 'error', text: 'Failed to unblock user' });
       }
     }
 

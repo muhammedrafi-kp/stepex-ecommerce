@@ -4,17 +4,36 @@ import sharp from "sharp";
 
 
 const loadProducts = async (req, res,next) => {
-
     try {
-        const page = req.query.page || 1;
+        const page = parseInt(req.query.page || 1, 10);
+        const query = (req.query.q || "").trim();
         const limit = 5;
         const skip = (page - 1) * limit;
-        const productsData = await Products.find({ is_delete: 0 }).populate("category").skip(skip).limit(limit);
-        
-        const totalProducts = await Products.countDocuments({});
-        const totalPages = Math.ceil(totalProducts / limit);
 
-        res.render("products", { products: productsData, totalPages, currentPage: page });
+        const textFilter = query
+            ? {
+                $or: [
+                    { name: { $regex: query, $options: "i" } },
+                    { brand: { $regex: query, $options: "i" } },
+                    { gender: { $regex: query, $options: "i" } },
+                ]
+            }
+            : {};
+
+        const filter = { is_delete: 0, ...textFilter };
+
+        const [productsData, totalProducts] = await Promise.all([
+            Products.find(filter).populate("category").skip(skip).limit(limit),
+            Products.countDocuments(filter)
+        ]);
+        const totalPages = Math.ceil(totalProducts / limit) || 1;
+
+        const wantsJson = req.xhr || (req.headers.accept && req.headers.accept.includes("application/json"));
+        if (wantsJson) {
+            return res.json({ products: productsData, totalPages, currentPage: page, query });
+        }
+
+        res.render("products", { products: productsData, totalPages, currentPage: page, query });
        
     } catch (error) {
         error.statusCode = 500;
@@ -22,9 +41,7 @@ const loadProducts = async (req, res,next) => {
     }
 }
 
-
 const loadAddProduct = async (req, res,next) => {
-
     try {
         const categories = await Category.find({ is_delete: 0 });
         const genders = ["Men", "Women", "Boys", "Girls"];
@@ -37,10 +54,8 @@ const loadAddProduct = async (req, res,next) => {
     }
 }
 
-
 const addProduct = async (req, res,next) => {
     try {
-
         const { name, price, category, gender, brand, quantity, description } = req.body;
 
         const existingProductWithName = await Products.findOne({ name: name });
@@ -87,7 +102,6 @@ const addProduct = async (req, res,next) => {
     }
 };
 
-
 const loadUnlsitedProducts = async (req, res,next) => {
     try {
         const page = req.query.page || 1;
@@ -103,7 +117,6 @@ const loadUnlsitedProducts = async (req, res,next) => {
         next(error);
     }
 }
-
 
 const unlistProduct = async (req, res,next) => {
     try {
@@ -122,7 +135,6 @@ const unlistProduct = async (req, res,next) => {
     }
 }
 
-
 const retrieveProduct = async (req, res,next) => {
     try {
         const id = req.query.id;
@@ -140,7 +152,6 @@ const retrieveProduct = async (req, res,next) => {
     }
 }
 
-
 const loadEditProduct = async (req, res,next) => {
     try {
         const productId = req.query.id;
@@ -154,17 +165,14 @@ const loadEditProduct = async (req, res,next) => {
     }
 }
 
-
 const editProduct = async (req, res,next) => {
     try {
-
         const { id, name, price, category, gender, brand, quantity, description, deletedImages } = req.body;
 
         const existingProductWithName = await Products.findOne({ name: name, _id: { $ne: id } });
         if (existingProductWithName) {
 
             return res.status(400).json({ success: false, message: "A product with the same name already exists." });
-
         } else {
 
             const categoryId = await Category.findOne({ name: category }, { _id: 1 });
