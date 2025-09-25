@@ -343,6 +343,9 @@
             } else if (!alphanumericRegex.test(name)) {
                 document.getElementById("name-error").textContent = "Name should not contain any special characters.";
                 isValid = false;
+            } else if (name.length > 40) {
+                document.getElementById("name-error").textContent = "Name must be at most 40 characters.";
+                isValid = false;
             } else {
                 document.getElementById("name-error").textContent = "";
             }

@@ -84,6 +84,9 @@
             } else if (!alphabetRegex.test(name)) {
                 document.getElementById("name-error").textContent = "Name must contain only alphabets.";
                 isValid = false;
+            } else if (name.length > 10) {
+                document.getElementById("name-error").textContent = "Name must be at most 10 characters.";
+                isValid = false;
             } else {
                 document.getElementById("name-error").textContent = "";
             }

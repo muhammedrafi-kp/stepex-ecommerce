@@ -341,7 +341,7 @@ const createRazorPay = async (req, res, next) => {
         // Save payment lock to session
         req.session.paymentLock = {
             orderId: razorpayOrder.id,
-            expireAt: new Date(Date.now() + 1 * 60 * 1000)
+            expireAt: new Date(Date.now() + 5 * 60 * 1000)
         };
 
         req.session.save(err => {
